@@ -1,0 +1,49 @@
+Pin7-10 Mode switching DIP
+
+Part 1
+----------
+Pushbutton1 - Pin5
+RGB1 - Pin21
+
+Part 2
+----------
+Pushbutton1 - Pin5
+Pushbutton2 - Pin6
+RGB1 - Pin21
+
+Part 3
+----------
+RGB1 - Pin21
+RGB2 - Pin22
+RGB3 - Pin23
+RGBDIP - Pin17,19,20
+
+Part 4
+----------
+NavSwtich 24-26, 29-30
+
+Part 5
+----------
+USB D+,D-
+
+Part 6
+----------
+TouchPadI2C - 27-29 (29 IRQ)
+
+Part 7
+----------
+SPI 11-13
+RESET 14
+CS 15
+
+Part 8
+----------
+POT 16
+
+Part 9
+----------
+ANALOGOUT 18
+
+Part 10
+----------
+ANALOGOUT 18
