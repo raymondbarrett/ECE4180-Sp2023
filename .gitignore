@@ -1,0 +1,16 @@
+# .gitignore
+#
+
+# General
+**/.vscode
+**/.idea
+
+# Build artifacts.
+**/build/
+**/BUILD/
+**/compile_commands.json
+*.o
+*.bin
+
+# MBed
+**/mbed-os/
