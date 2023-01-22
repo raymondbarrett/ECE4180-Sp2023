@@ -6,6 +6,10 @@
 #error "C++14 (max supported by online compiler) required."
 #endif
 
+#include <mbed.h>
+
+#include "pinout.hpp"
+
 /// \brief Main entrypoint.
 int
 main()
