@@ -131,6 +131,9 @@ FunctionContext::start()
   if (!latched_block->next)
     goto exit;
 
+  // Enter the initial top block. Skip ones preceding it.
+  HANDLE_ERROR(latched_block->context()->enter());
+
   __enable_irq();
 
   do {

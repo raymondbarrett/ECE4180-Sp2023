@@ -14,10 +14,28 @@
 
 #include "function_context.hpp"
 #include "hardware.hpp"
+#include "mode_select_context.hpp"
 
 // ======================= Local Definitions =========================
 
 namespace {
+
+class DoNothingContext : public FunctionContext
+{
+ public:
+  DoNothingContext()                   = default;
+  virtual ~DoNothingContext() noexcept = default;
+  virtual int enter() override { return 0; }
+  virtual int loop() override { return 0; }
+  virtual int idle() override { return 0; }
+  virtual int exit() override { return 0; }
+};
+
+class KillContext : public DoNothingContext
+{
+ public:
+  virtual int enter() override { return 1; }
+};
 
 int __attribute__((noreturn)) die(int code)
 {
@@ -40,6 +58,24 @@ int __attribute__((noreturn)) die(int code)
   } while (true);
 }
 
+std::array<void (*)(FunctionContext*), 1 << 4> function_context_spawners = {
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c); }};
+
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -47,7 +83,7 @@ int __attribute__((noreturn)) die(int code)
 extern "C" int __attribute__((noreturn)) main()
 {
   // Set up mode-switching DIPS.
-  // TODO.
+  FunctionContext::spawn<ModeSelectContext>(nullptr, function_context_spawners);
 
   // Transfer control to FunctionContext loop.
   FunctionContext::start();

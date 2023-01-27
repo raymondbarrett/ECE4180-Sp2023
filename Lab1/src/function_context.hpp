@@ -1,6 +1,7 @@
 /// \file function_context.hpp
 /// \date 2023-01-24
 /// \author mshakula (mshakula3@gatech.edu)
+/// \version 0.1.1
 ///
 /// \brief Bare-level task primitive for configurable layered
 /// architecture support.
@@ -107,13 +108,6 @@ class FunctionContext
   /// \return non-zero return code on success.
   virtual int exit() = 0;
 
-  /// \brief Convert an exit code from the pipeline functions into something
-  /// legible.
-  virtual const char* what(int)
-  {
-    return "A FunctionContext pipeline error occurred.";
-  }
-
  private:
   /// \brief Allocate a context's memory onto the context stack.
   /// \return FunctionContext*
@@ -138,7 +132,7 @@ FunctionContext::spawn(
     "Dont support over-aligned types.");
 
   void* c_ptr = pushOnStack_(expected_current_context, sizeof(Context));
-  ::new (c_ptr) Context(std::forward(params)...);
+  ::new (c_ptr) Context(std::forward<Ts>(params)...);
   return static_cast<FunctionContext*>(c_ptr);
 }
 

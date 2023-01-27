@@ -18,8 +18,14 @@
 
 #include <drivers/DigitalOut.h>
 #include <drivers/Timer.h>
+#include <platform.h>
 
 // ======================= Public Interface ==========================
+
+#define PIN_MODE_DIP_4 p6
+#define PIN_MODE_DIP_3 p8
+#define PIN_MODE_DIP_2 p9
+#define PIN_MODE_DIP_1 p10
 
 /// \brief Enumerate the globally-accessible hardware that requires no
 /// configuration.
@@ -33,24 +39,24 @@ extern std::array<mbed::DigitalOut, 4> OnboardLEDs;
 enum class Pins : int
 {
   // Mode-switching DIP switches for function selection.
-  kModeDip4 = 6,  // SW4 - LSB
-  kModeDip3 = 8,  // SW3 - LSB + 1
-  kModeDip2 = 9,  // SW2 - MSB - 1
-  kModeDip1 = 10, // SW1 - MSB
+  kModeDip4 = p6,  // SW4 - LSB
+  kModeDip3 = p8,  // SW3 - LSB + 1
+  kModeDip2 = p9,  // SW2 - MSB - 1
+  kModeDip1 = p10, // SW1 - MSB
 
   // Generic push-button switches.
-  kPushButtonA = 7,
-  kPushButtonB = 5,
+  kPushButtonA = p7,
+  kPushButtonB = p5,
 
   // RGB LED pins.
-  kRGB_B = 21,
-  kRGB_G = 22,
-  kRGB_R = 23,
+  kRGB_B = p21,
+  kRGB_G = p22,
+  kRGB_R = p23,
 
   // RGB DIP.
-  kRGBDip1 = 17, // SW1
-  kRGBDip2 = 19, // Sw2
-  kRGBDip3 = 20, // SW3
+  kRGBDip1 = p17, // SW1
+  kRGBDip2 = p19, // Sw2
+  kRGBDip3 = p20, // SW3
 
   // Navigation switch pins (TODO).
   // kNavSwitchX = 24,
@@ -70,8 +76,8 @@ enum class Pins : int
   // CS 15
 
   // Potentiometer and analog.
-  kPot    = 16,
-  kAnalog = 18
+  kPot    = p16,
+  kAnalog = p18
 };
 
 /// \brief A debounce-handling function wrapper for button inputs.
