@@ -1,19 +1,33 @@
-/// \file src/hardware.hpp
+/// \file hardware.hpp
+/// \date 2023-01-24
+/// \author mshakula (mshakula3@gatech.edu)
 ///
-/// \brief Basic hardware support code.
+/// \brief Specify the hardware setup + hardware that always exists.
 
 #ifndef HARDWARE_HPP
 #define HARDWARE_HPP
 
 #ifndef __cplusplus
-#error "hardware.hpp is a c++-only header."
+#error "hardware.hpp is a cxx-only header."
 #endif // __cplusplus
 
 #define MBED_NO_GLOBAL_USING_DIRECTIVE
 
+#include <array>
 #include <chrono>
 
+#include <drivers/DigitalOut.h>
 #include <drivers/Timer.h>
+
+// ======================= Public Interface ==========================
+
+/// \brief Enumerate the globally-accessible hardware that requires no
+/// configuration.
+namespace GlobalHardware {
+
+extern std::array<mbed::DigitalOut, 4> OnboardLEDs;
+
+} // namespace GlobalHardware
 
 /// \brief Enumerate the possible used pins.
 enum class Pins : int
@@ -76,5 +90,7 @@ struct DebounceWrapper
     }
   }
 };
+
+// ===================== Detail Implementation =======================
 
 #endif // HARDWARE_HPP
