@@ -1,0 +1,6 @@
+repo: 48fd0c31cef5c6b5185ea3b2d1818630999b2ff4
+node: 679a07e00e4cba783bd65c61e07b0268c4b8feb1
+branch: default
+latesttag: null
+latesttagdistance: 6
+changessincelatesttag: 6
