@@ -20,10 +20,6 @@ namespace {
 
 namespace GlobalHardware {
 
-std::array<mbed::DigitalOut, 4> OnboardLEDs{
-  mbed::DigitalOut{LED1},
-  mbed::DigitalOut{LED2},
-  mbed::DigitalOut{LED3},
-  mbed::DigitalOut{LED4}};
+mbed::BusOut OnboardLEDs(LED4, LED3, LED2, LED1);
 
 }; // namespace GlobalHardware

@@ -22,7 +22,7 @@ add_executable(Lab1)
 mbed_configure_app_target(Lab1)
 
 target_sources(Lab1 PRIVATE src/main.cpp src/function_context.cpp
-                            src/hardware.cpp)
+                            src/hardware.cpp src/led_demos.cpp)
 target_link_libraries(Lab1 PRIVATE mbed-baremetal)
 
 mbed_set_post_build(Lab1)

@@ -35,7 +35,6 @@ class ModeSelectContext : public DefaultContext
   virtual ~ModeSelectContext() noexcept;
   virtual int enter() override;
   virtual int loop() override;
-  virtual int idle() override;
   virtual int exit() override;
 
  private:
@@ -51,7 +50,10 @@ class ModeSelectContext : public DefaultContext
 
   int                   currently_selected_;
   const SpawnFunctions& spawn_funcs_;
-  alignas(mbed::InterruptIn) char dips_[sizeof(mbed::InterruptIn) * kDipCount];
+  union {
+    char              _;
+    mbed::InterruptIn dips_[kDipCount];
+  };
 };
 
 // ===================== Detail Implementation =======================
@@ -61,16 +63,12 @@ ModeSelectContext::ModeSelectContext(
     DefaultContext("ModeSelectContext"),
     currently_selected_{0},
     spawn_funcs_{spawn_functions},
-    dips_{0}
+    _{0}
 {
-  ::new (reinterpret_cast<mbed::InterruptIn*>(dips_) + 0)
-    mbed::InterruptIn(PIN_MODE_DIP_1, PullUp);
-  ::new (reinterpret_cast<mbed::InterruptIn*>(dips_) + 1)
-    mbed::InterruptIn(PIN_MODE_DIP_2, PullUp);
-  ::new (reinterpret_cast<mbed::InterruptIn*>(dips_) + 2)
-    mbed::InterruptIn(PIN_MODE_DIP_3, PullUp);
-  ::new (reinterpret_cast<mbed::InterruptIn*>(dips_) + 3)
-    mbed::InterruptIn(PIN_MODE_DIP_4, PullUp);
+  ::new (dips_ + 0) mbed::InterruptIn(PIN_MODE_DIP_1, PullUp);
+  ::new (dips_ + 1) mbed::InterruptIn(PIN_MODE_DIP_2, PullUp);
+  ::new (dips_ + 2) mbed::InterruptIn(PIN_MODE_DIP_3, PullUp);
+  ::new (dips_ + 3) mbed::InterruptIn(PIN_MODE_DIP_4, PullUp);
 
   currently_selected_ = readDips_();
 }
@@ -100,19 +98,9 @@ ModeSelectContext::enter()
 inline int
 ModeSelectContext::loop()
 {
-  currently_selected_ = readDips_();
+  currently_selected_         = readDips_();
+  GlobalHardware::OnboardLEDs = currently_selected_;
   spawn_funcs_[currently_selected_](this);
-  idle();
-  return 0;
-}
-
-inline int
-ModeSelectContext::idle()
-{
-  for (int i = 0; i < kDipCount; ++i) {
-    GlobalHardware::OnboardLEDs[i] =
-      currently_selected_ & (1 << (kDipCount - 1 - i));
-  }
   return 0;
 }
 
@@ -121,14 +109,10 @@ ModeSelectContext::exit()
 {
   // IRQ for all changes in the switches.
   auto switch_callback = [&]() {
-    // debug("IRQ");
     int val = readDips_();
-    if (val != currently_selected_) {
-      // debug(" terminate.\n");
+
+    if (val != currently_selected_)
       FunctionContext::terminate();
-    } else {
-      // debug("\n");
-    }
   };
 
   for (int i = 0; i < kDipCount; ++i) {

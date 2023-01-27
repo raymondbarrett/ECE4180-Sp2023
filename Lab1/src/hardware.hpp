@@ -16,7 +16,7 @@
 #include <array>
 #include <chrono>
 
-#include <drivers/DigitalOut.h>
+#include <drivers/BusOut.h>
 #include <drivers/Timer.h>
 #include <platform.h>
 
@@ -27,14 +27,30 @@
 #define PIN_MODE_DIP_2 p9
 #define PIN_MODE_DIP_1 p10
 
+#define PIN_PUSH_BUTTON_A p7
+#define PIN_PUSH_BUTTON_B p5
+
+#define PIN_RGB_B p21
+#define PIN_RGB_G p22
+#define PIN_RGB_R p23
+
+#define PIN_RGB_DIP_1 p17
+#define PIN_RGB_DIP_2 p19
+#define PIN_RGB_DIP_3 p20
+
+#define PIN_POT p16
+#define PIN_ANALOG p18
+
 /// \brief Enumerate the globally-accessible hardware that requires no
 /// configuration.
 namespace GlobalHardware {
 
-extern std::array<mbed::DigitalOut, 4> OnboardLEDs;
+constexpr std::size_t kOnboardLEDsCount = 4;
+extern mbed::BusOut   OnboardLEDs;
 
 } // namespace GlobalHardware
 
+/*
 /// \brief Enumerate the possible used pins.
 enum class Pins : int
 {
@@ -79,20 +95,25 @@ enum class Pins : int
   kPot    = p16,
   kAnalog = p18
 };
+*/
 
 /// \brief A debounce-handling function wrapper for button inputs.
-template<void (*Callback)()>
+template<class Callback>
 struct DebounceWrapper
 {
   static constexpr auto kDebounceTime = std::chrono::milliseconds(5);
 
   static mbed::Timer timer;
 
+  Callback t_;
+
+  DebounceWrapper(const Callback& t) : t_(t) {}
+
   void operator()()
   {
     if (timer.elapsed_time() > kDebounceTime) {
       timer.reset();
-      Callback();
+      t_();
     }
   }
 };
