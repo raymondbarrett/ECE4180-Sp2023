@@ -1,7 +1,7 @@
 /// \file function_context.hpp
 /// \date 2023-01-24
 /// \author mshakula (mshakula3@gatech.edu)
-/// \version 0.1.1
+/// \version 0.2.0
 ///
 /// \brief Bare-level task primitive for configurable layered
 /// architecture support.
@@ -114,6 +114,21 @@ class FunctionContext
   static FunctionContext* pushOnStack_(
     FunctionContext* expected,
     std::size_t      size);
+};
+
+/// \brief Helper implementation of a FunctionContext with debugging helpers.
+class DefaultContext : public FunctionContext
+{
+ public:
+  DefaultContext(const char* trace_name);
+  virtual ~DefaultContext() noexcept;
+  virtual int enter() override;
+  virtual int loop() override;
+  virtual int idle() override;
+  virtual int exit() override;
+
+ private:
+  const char* trace_name_;
 };
 
 // ===================== Detail Implementation =======================

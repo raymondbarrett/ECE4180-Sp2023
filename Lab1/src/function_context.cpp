@@ -19,6 +19,7 @@
 #include <new>
 
 #include <cmsis.h>
+#include <mbed_debug.h>
 
 #include "hardware.hpp"
 
@@ -97,9 +98,18 @@ handlePipelineErr(int errc)
   std::exit(errc);
 }
 
+#ifndef NDEBUG
+
+/// \brief
+std::atomic<int> context_depth_counter{0};
+
+#endif // NDEBUG
+
 } // namespace
 
 // ====================== Global Definitions =========================
+
+#pragma region FunctionContext
 
 void
 FunctionContext::terminate()
@@ -223,3 +233,73 @@ FunctionContext::pushOnStack_(FunctionContext* expected, std::size_t size)
 
   return block->context();
 }
+
+#pragma endregion FunctionContext
+#pragma region    DefaultContext
+
+DefaultContext::DefaultContext(const char* trace_name) :
+    trace_name_(trace_name ? trace_name : "DefaultContext")
+{
+#ifndef NDEBUG
+  int depth = context_depth_counter.fetch_add(1, std::memory_order_acq_rel);
+  for (int i = 0; i < depth - 1; ++i)
+    debug("--");
+  if (depth)
+    debug("- ");
+  debug("%s::%s()\n", trace_name_, trace_name_);
+#endif // NDEBUG
+}
+
+DefaultContext::~DefaultContext()
+{
+#ifndef NDEBUG
+  int depth = context_depth_counter.fetch_sub(1, std::memory_order_acq_rel) - 1;
+  for (int i = 0; i < depth - 1; ++i)
+    debug("--");
+  if (depth)
+    debug("- ");
+  debug("%s::~%s()\n", trace_name_, trace_name_);
+#endif // NDEBUG
+}
+
+int
+DefaultContext::enter()
+{
+#ifndef NDEBUG
+  int depth = context_depth_counter.load(std::memory_order_acquire) - 1;
+  for (int i = 0; i < depth - 1; ++i)
+    debug("--");
+  if (depth)
+    debug("- ");
+  debug("%s::enter()\n", trace_name_);
+#endif // NDEBUG
+  return 0;
+};
+
+int
+DefaultContext::loop()
+{
+  return 0;
+}
+
+int
+DefaultContext::idle()
+{
+  return 0;
+}
+
+int
+DefaultContext::exit()
+{
+#ifndef NDEBUG
+  int depth = context_depth_counter.load(std::memory_order_acquire) - 1;
+  for (int i = 0; i < depth - 1; ++i)
+    debug("--");
+  if (depth)
+    debug("- ");
+  debug("%s::exit()\n", trace_name_);
+#endif // NDEBUG
+  return 0;
+}
+
+#pragma endregion DefaultContext

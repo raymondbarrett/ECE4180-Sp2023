@@ -20,21 +20,25 @@
 
 namespace {
 
-class DoNothingContext : public FunctionContext
+/// \brief Context to do nothing.
+class DoNothingContext : public DefaultContext
 {
  public:
-  DoNothingContext()                   = default;
-  virtual ~DoNothingContext() noexcept = default;
-  virtual int enter() override { return 0; }
-  virtual int loop() override { return 0; }
-  virtual int idle() override { return 0; }
-  virtual int exit() override { return 0; }
+  DoNothingContext() : DefaultContext("DoNothingContext") {}
 };
 
-class KillContext : public DoNothingContext
+/// \brief Abnormally terminate the main context loop upon entry.
+class KillContext : public DefaultContext
 {
+  int code_;
+
  public:
-  virtual int enter() override { return 1; }
+  KillContext(int code) : DefaultContext("KillContext"), code_{code} {}
+  virtual int enter() override
+  {
+    DefaultContext::enter();
+    return code_;
+  }
 };
 
 int __attribute__((noreturn)) die(int code)
@@ -60,21 +64,21 @@ int __attribute__((noreturn)) die(int code)
 
 std::array<void (*)(FunctionContext*), 1 << 4> function_context_spawners = {
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 2); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 3); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 4); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 5); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 6); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 7); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 8); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 9); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c); }};
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); }};
 
 } // namespace
 

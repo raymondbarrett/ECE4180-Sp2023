@@ -17,15 +17,13 @@
 #include <new>
 #include <utility>
 
-#include <mbed_debug.h>
-
 #include "function_context.hpp"
 #include "hardware.hpp"
 
 // ======================= Public Interface ==========================
 
 /// \brief The top-level context to select function for demo.
-class ModeSelectContext : public FunctionContext
+class ModeSelectContext : public DefaultContext
 {
   static constexpr int kDipCount = 4;
 
@@ -60,7 +58,7 @@ class ModeSelectContext : public FunctionContext
 
 ModeSelectContext::ModeSelectContext(
   const SpawnFunctions& spawn_functions) noexcept :
-    FunctionContext(),
+    DefaultContext("ModeSelectContext"),
     currently_selected_{0},
     spawn_funcs_{spawn_functions},
     dips_{0}
@@ -75,8 +73,6 @@ ModeSelectContext::ModeSelectContext(
     mbed::InterruptIn(PIN_MODE_DIP_4, PullUp);
 
   currently_selected_ = readDips_();
-
-  debug("ModeSelectContext::ModeSelectContext()\n");
 }
 
 inline ModeSelectContext::~ModeSelectContext() noexcept
@@ -85,20 +81,18 @@ inline ModeSelectContext::~ModeSelectContext() noexcept
     auto dip = reinterpret_cast<mbed::InterruptIn*>(dips_) + i;
     dip->~InterruptIn();
   }
-
-  debug("ModeSelectContext::~ModeSelectContext()\n");
 }
 
 inline int
 ModeSelectContext::enter()
 {
+  DefaultContext::enter();
+
   for (int i = 0; i < kDipCount; ++i) {
     auto dip = reinterpret_cast<mbed::InterruptIn*>(dips_) + i;
     dip->fall(nullptr);
     dip->rise(nullptr);
   }
-
-  debug("ModeSelectContext::enter()\n");
 
   return 0;
 }
@@ -143,7 +137,8 @@ ModeSelectContext::exit()
     dip->rise(switch_callback);
   }
 
-  debug("ModeSelectContext::exit()\n");
+  DefaultContext::exit();
+
   return 0;
 }
 
