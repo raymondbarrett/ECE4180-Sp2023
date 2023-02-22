@@ -10,6 +10,7 @@
 
 #include <mbed.h>
 
+#include "assignment.hpp"
 #include "function_context.hpp"
 #include "global_hardware.hpp"
 #include "mode_select_context.hpp"
@@ -37,24 +38,19 @@ bouncy(int i)
 class DoNothingContext : public DefaultContext
 {
  public:
-  DoNothingContext() : DefaultContext("DoNothingContext"), c_(), i_{0}
+  DoNothingContext(int depth) :
+      DefaultContext("DoNothingContext", depth), c_(), i_{0}
   {
     c_.start();
   }
 
   virtual int loop() override
   {
-    using namespace std::chrono_literals;
+    DefaultContext::loop();
     if (c_.read_us() > 100'000) {
       i_ = bouncy(i_);
       c_.reset();
     }
-    return 0;
-  }
-
-  virtual int exit() override
-  {
-    DefaultContext::exit();
     return 0;
   }
 
@@ -69,7 +65,10 @@ class KillContext : public DefaultContext
   int code_;
 
  public:
-  KillContext(int code) : DefaultContext("KillContext"), code_{code} {}
+  KillContext(int depth, int code) :
+      DefaultContext("KillContext", depth), code_{code}
+  {
+  }
   virtual int enter() override
   {
     DefaultContext::enter();
@@ -91,7 +90,7 @@ int __attribute__((noreturn)) die(int code)
 
 std::array<void (*)(FunctionContext*), 1 << 3> function_context_spawners = {
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
+  [](FunctionContext* c) { FunctionContext::spawn<IMUContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
   [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
@@ -108,7 +107,8 @@ main()
 {
   GlobalHardware::OnboardLEDs = 4;
 
-  FunctionContext::spawn<ModeSelectContext>(nullptr, function_context_spawners);
+  FunctionContext::spawn<ModeSelectContext>(
+    nullptr, 0, function_context_spawners);
   FunctionContext::start();
 
   die(1);

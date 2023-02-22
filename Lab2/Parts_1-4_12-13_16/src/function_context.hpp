@@ -120,15 +120,19 @@ class FunctionContext
 class DefaultContext : public FunctionContext
 {
  public:
-  DefaultContext(const char* trace_name);
+  DefaultContext(const char* trace_name, int depth);
   virtual ~DefaultContext() noexcept;
   virtual int enter() override;
   virtual int loop() override;
   virtual int idle() override;
   virtual int exit() override;
 
+ protected:
+  int depth() const noexcept { return depth_; }
+
  private:
   const char* trace_name_;
+  int         depth_;
 };
 
 // ===================== Detail Implementation =======================

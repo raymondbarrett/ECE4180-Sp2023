@@ -30,7 +30,7 @@ class ModeSelectContext : public DefaultContext
   using SpawnFunctions = std::array<void (*)(FunctionContext*), 1 << kDipCount>;
 
  public:
-  ModeSelectContext(const SpawnFunctions& spawn_functions);
+  ModeSelectContext(int depth, const SpawnFunctions& spawn_functions);
 
   virtual ~ModeSelectContext() noexcept;
   virtual int enter() override;
@@ -57,8 +57,9 @@ class ModeSelectContext : public DefaultContext
 // ===================== Detail Implementation =======================
 
 ModeSelectContext::ModeSelectContext(
+  int                   depth,
   const SpawnFunctions& spawn_functions) noexcept :
-    DefaultContext("ModeSelectContext"),
+    DefaultContext("ModeSelectContext", depth),
     currently_selected_{0},
     spawn_funcs_{spawn_functions},
     _{0}

@@ -98,13 +98,6 @@ handlePipelineErr(int errc)
   std::exit(errc);
 }
 
-#ifndef NDEBUG
-
-/// \brief
-std::atomic<int> context_depth_counter{0};
-
-#endif // NDEBUG
-
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -237,11 +230,10 @@ FunctionContext::pushOnStack_(FunctionContext* expected, std::size_t size)
 #pragma endregion FunctionContext
 #pragma region    DefaultContext
 
-DefaultContext::DefaultContext(const char* trace_name) :
-    trace_name_(trace_name ? trace_name : "DefaultContext")
+DefaultContext::DefaultContext(const char* trace_name, int depth) :
+    trace_name_(trace_name ? trace_name : "DefaultContext"), depth_{depth}
 {
 #ifndef NDEBUG
-  int depth = context_depth_counter.fetch_add(1, std::memory_order_acq_rel);
   for (int i = 0; i < depth - 1; ++i)
     debug("--");
   if (depth)
@@ -253,7 +245,7 @@ DefaultContext::DefaultContext(const char* trace_name) :
 DefaultContext::~DefaultContext()
 {
 #ifndef NDEBUG
-  int depth = context_depth_counter.fetch_sub(1, std::memory_order_acq_rel) - 1;
+  const int& depth = depth_;
   for (int i = 0; i < depth - 1; ++i)
     debug("--");
   if (depth)
@@ -266,7 +258,7 @@ int
 DefaultContext::enter()
 {
 #ifndef NDEBUG
-  int depth = context_depth_counter.load(std::memory_order_acquire) - 1;
+  const int& depth = depth_;
   for (int i = 0; i < depth - 1; ++i)
     debug("--");
   if (depth)
@@ -292,7 +284,7 @@ int
 DefaultContext::exit()
 {
 #ifndef NDEBUG
-  int depth = context_depth_counter.load(std::memory_order_acquire) - 1;
+  const int& depth = depth_;
   for (int i = 0; i < depth - 1; ++i)
     debug("--");
   if (depth)
