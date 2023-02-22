@@ -24,12 +24,14 @@
 
 class IMUContext : public DefaultContext
 {
-  LSM9DS1 lol_;
-  Timer   timer_;
+  LSM9DS1     lol_;
+  mbed::Timer timer_;
 
  public:
-  IMUContext() :
-      DefaultContext("IMUContext"), lol_(I2C_SDA, I2C_SCL, 0xD6, 0x3C), timer_()
+  IMUContext(int depth) :
+      DefaultContext("IMUContext", depth),
+      lol_(I2C_SDA, I2C_SCL, 0xD6, 0x3C),
+      timer_()
   {
   }
 
@@ -37,7 +39,7 @@ class IMUContext : public DefaultContext
 
   virtual int enter() override
   {
-    timer_.begin();
+    timer_.start();
     if (!lol_.begin()) {
       debug("ERROR INITIALIZING IMU.");
       return 1;
@@ -49,13 +51,13 @@ class IMUContext : public DefaultContext
   virtual int loop() override
   {
     if (timer_.read_us() > 1'000'000) {
-      lol.readTemp();
-      lol.readMag();
-      lol.readGyro();
+      lol_.readTemp();
+      lol_.readMag();
+      lol_.readGyro();
 
-      std::printf("gyro: %d %d %d\n\r", lol.gx, lol.gy, lol.gz);
-      std::printf("accel: %d %d %d\n\r", lol.ax, lol.ay, lol.az);
-      std::printf("mag: %d %d %d\n\n\r", lol.mx, lol.my, lol.mz);
+      std::printf("gyro: %d %d %d\n\r", lol_.gx, lol_.gy, lol_.gz);
+      std::printf("accel: %d %d %d\n\r", lol_.ax, lol_.ay, lol_.az);
+      std::printf("mag: %d %d %d\n\n\r", lol_.mx, lol_.my, lol_.mz);
 
       timer_.reset();
     }

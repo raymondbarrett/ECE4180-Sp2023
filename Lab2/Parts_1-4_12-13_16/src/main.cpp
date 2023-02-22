@@ -89,14 +89,14 @@ int __attribute__((noreturn)) die(int code)
 }
 
 std::array<void (*)(FunctionContext*), 1 << 3> function_context_spawners = {
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<IMUContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c); },
-  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 0xff); }};
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<IMUContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<DoNothingContext>(c, 1); },
+  [](FunctionContext* c) { FunctionContext::spawn<KillContext>(c, 1, 0xff); }};
 
 } // namespace
 

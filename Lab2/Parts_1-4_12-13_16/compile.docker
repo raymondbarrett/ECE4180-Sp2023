@@ -1,7 +1,0 @@
-# compile.docker
-
-mbed deploy
-python -m pip install -r mbed/requirements.txt
-ln -s mbed/workspace_tools workspace_tools
-ln -s workspace_tools tools
-mbed compile -v -t GCC_ARM -m $1

@@ -42,16 +42,15 @@ class ModeSelectContext : public DefaultContext
   {
     int v = 0;
     for (int i = 0; i < kDipCount; ++i)
-      v |= !dips_[i].read() << (kDipCount - 1 - i);
+      v |= !reinterpret_cast<mbed::InterruptIn*>(&dips_[i])->read()
+        << (kDipCount - 1 - i);
     return v;
   }
 
   int                   currently_selected_;
   const SpawnFunctions& spawn_funcs_;
-  union {
-    char              _;
-    mbed::InterruptIn dips_[kDipCount];
-  };
+  std::aligned_storage_t<sizeof(mbed::InterruptIn), alignof(mbed::InterruptIn)>
+    dips_[kDipCount];
 };
 
 // ===================== Detail Implementation =======================
@@ -61,12 +60,11 @@ ModeSelectContext::ModeSelectContext(
   const SpawnFunctions& spawn_functions) noexcept :
     DefaultContext("ModeSelectContext", depth),
     currently_selected_{0},
-    spawn_funcs_{spawn_functions},
-    _{0}
+    spawn_funcs_{spawn_functions}
 {
-  ::new (dips_ + 0) mbed::InterruptIn(MODE_DIP_P1, PullUp);
-  ::new (dips_ + 1) mbed::InterruptIn(MODE_DIP_P2, PullUp);
-  ::new (dips_ + 2) mbed::InterruptIn(MODE_DIP_P3, PullUp);
+  ::new (&dips_[0]) mbed::InterruptIn(MODE_DIP_P1, PullUp);
+  ::new (&dips_[1]) mbed::InterruptIn(MODE_DIP_P2, PullUp);
+  ::new (&dips_[2]) mbed::InterruptIn(MODE_DIP_P3, PullUp);
   // ::new (dips_ + 3) mbed::InterruptIn(MODE_DIP_P4, PullUp);
 
   currently_selected_ = readDips_();
