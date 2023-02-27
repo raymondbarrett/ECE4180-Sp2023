@@ -1,7 +1,7 @@
 /// \file function_context.hpp
 /// \date 2023-01-24
 /// \author mshakula (mshakula3@gatech.edu)
-/// \version 0.2.0
+/// \version 0.3.0
 ///
 /// \brief Bare-level task primitive for configurable layered
 /// architecture support.
@@ -120,7 +120,7 @@ class FunctionContext
 class DefaultContext : public FunctionContext
 {
  public:
-  DefaultContext(const char* trace_name, int depth);
+  DefaultContext(const char* name, int depth);
   virtual ~DefaultContext() noexcept;
   virtual int enter() override;
   virtual int loop() override;
@@ -128,11 +128,11 @@ class DefaultContext : public FunctionContext
   virtual int exit() override;
 
  protected:
-  int depth() const noexcept { return depth_; }
+  int                 depth() const noexcept { return depth_; }
+  virtual const char* contextName() const noexcept { return "DefaultContext"; };
 
  private:
-  const char* trace_name_;
-  int         depth_;
+  int depth_;
 };
 
 // ===================== Detail Implementation =======================

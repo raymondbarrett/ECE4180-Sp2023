@@ -33,15 +33,16 @@
 #define RESERVED_TX p13
 #define RESERVED_RX p14
 
-#define MEMS_IN p20
+#define MEMS_IN p16
+#define TOF_XSHUT p17
 
 #define MODE_DIP_P1 p30
 #define MODE_DIP_P2 p12
 #define MODE_DIP_P3 p11
 
 #define LCD_RST p26
-#define LCD_TX p27
-#define LCD_RX p28 // To LCD RX.
+#define LCD_TX p28
+#define LCD_RX p27 // To LCD RX.
 
 // ETHERNET goes to ETHERNET
 

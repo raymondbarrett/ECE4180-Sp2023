@@ -37,6 +37,12 @@ class ModeSelectContext : public DefaultContext
   virtual int loop() override;
   virtual int exit() override;
 
+ protected:
+  virtual const char* contextName() const noexcept
+  {
+    return "ModeSelectContext";
+  }
+
  private:
   int readDips_()
   {
@@ -58,7 +64,7 @@ class ModeSelectContext : public DefaultContext
 ModeSelectContext::ModeSelectContext(
   int                   depth,
   const SpawnFunctions& spawn_functions) noexcept :
-    DefaultContext("ModeSelectContext", depth),
+    DefaultContext(contextName(), depth),
     currently_selected_{0},
     spawn_funcs_{spawn_functions}
 {

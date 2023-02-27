@@ -1,0 +1,41 @@
+/// \file main.cpp
+/// \date 2023-02-22
+/// \author mshakula (mshakula3)
+///
+/// \brief The SD Demo.
+
+#include "SDFileSystem.h"
+#include "mbed.h"
+#include <stdio.h>
+
+// ======================= Local Definitions =========================
+
+// ====================== Global Definitions =========================
+
+SDFileSystem sd(p5, p6, p7, p8, "sd"); // the pinout on the mbed Cool
+                                       // Components workshop board
+
+int
+main()
+{
+  printf("\n\renter a key to continue.\n");
+  if (getc(stdin))
+    static_cast<void>(0);
+
+  printf("\rinitializing...\n");
+  sd.mount();
+  printf("\rdone.\n");
+
+  printf("\rmaking directory...\n");
+  mkdir("/sd/mydir", 0777);
+  printf("\rdone.\n");
+
+  FILE* fp = fopen("/sd/mydir/sdtest.txt", "w");
+  if (fp == NULL) {
+    error("Could not open file for write\n");
+  }
+  fprintf(fp, "Hello fun SD Card World!");
+  fclose(fp);
+
+  printf("Goodbye World!\n");
+}

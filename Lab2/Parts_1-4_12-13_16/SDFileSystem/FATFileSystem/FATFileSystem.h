@@ -22,73 +22,80 @@
 #ifndef MBED_FATFILESYSTEM_H
 #define MBED_FATFILESYSTEM_H
 
-#include "FileSystemLike.h"
 #include "FileHandle.h"
+#include "FileSystemLike.h"
 #include "ff.h"
 #include <stdint.h>
 
 using namespace mbed;
 
 /**
- * FATFileSystem based on ChaN's Fat Filesystem library v0.8 
+ * FATFileSystem based on ChaN's Fat Filesystem library v0.8
  */
-class FATFileSystem : public FileSystemLike {
-public:
+class FATFileSystem : public FileSystemLike
+{
+ public:
+  FATFileSystem(const char* n);
+  virtual ~FATFileSystem();
 
-    FATFileSystem(const char* n);
-    virtual ~FATFileSystem();
+  static FATFileSystem*
+    _ffs[_VOLUMES]; // FATFileSystem objects, as parallel to FatFs drives array
+  FATFS _fs;        // Work area (file system object) for logical drive
+  char  _fsid[2];
 
-    static FATFileSystem * _ffs[_VOLUMES];   // FATFileSystem objects, as parallel to FatFs drives array
-    FATFS _fs;                               // Work area (file system object) for logical drive
-    char _fsid[2];
+  /**
+   * Opens a file on the filesystem
+   */
+  virtual FileHandle* open(const char* name, int flags);
 
-    /**
-     * Opens a file on the filesystem
-     */
-    virtual FileHandle *open(const char* name, int flags);
-    
-    /**
-     * Removes a file path
-     */
-    virtual int remove(const char *filename);
-    
-    /**
-     * Renames a file
-     */
-    virtual int rename(const char *oldname, const char *newname);
-    
-    /**
-     * Formats a logical drive, FDISK artitioning rule, 512 bytes per cluster
-     */
-    virtual int format();
-    
-    /**
-     * Opens a directory on the filesystem
-     */
-    virtual DirHandle *opendir(const char *name);
-    
-    /**
-     * Creates a directory path
-     */
-    virtual int mkdir(const char *name, mode_t mode);
-    
-    /**
-     * Mounts the filesystem
-     */
-    virtual int mount();
-    
-    /**
-     * Unmounts the filesystem
-     */
-    virtual int unmount();
+  virtual int open(FileHandle** file, const char* filename, int flags)
+  {
+    *file = this->open(filename, flags);
+    return *file == NULL;
+  }
 
-    virtual int disk_initialize() { return 0; }
-    virtual int disk_status() { return 0; }
-    virtual int disk_read(uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_sync() { return 0; }
-    virtual uint32_t disk_sectors() = 0;
+  /**
+   * Removes a file path
+   */
+  virtual int remove(const char* filename);
 
+  /**
+   * Renames a file
+   */
+  virtual int rename(const char* oldname, const char* newname);
+
+  /**
+   * Formats a logical drive, FDISK artitioning rule, 512 bytes per cluster
+   */
+  virtual int format();
+
+  /**
+   * Opens a directory on the filesystem
+   */
+  virtual DirHandle* opendir(const char* name);
+
+  /**
+   * Creates a directory path
+   */
+  virtual int mkdir(const char* name, mode_t mode);
+
+  /**
+   * Mounts the filesystem
+   */
+  virtual int mount();
+
+  /**
+   * Unmounts the filesystem
+   */
+  virtual int unmount();
+
+  virtual int disk_initialize() { return 0; }
+  virtual int disk_status() { return 0; }
+  virtual int disk_read(uint8_t* buffer, uint32_t sector, uint32_t count) = 0;
+  virtual int
+  disk_write(const uint8_t* buffer, uint32_t sector, uint32_t count) = 0;
+  virtual int      disk_sync() { return 0; }
+  virtual uint32_t disk_sectors() = 0;
 };
 
 #endif

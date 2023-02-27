@@ -31,7 +31,7 @@ namespace {
 ///
 /// Each Block is associated with the immediately following FunctionContext.
 ///
-/// \note sizeof is guaranteed to be multiple of this alignment. (C++11
+/// \r\note sizeof is guaranteed to be multiple of this alignment. (C++11
 /// [[expr.sizeof/2]](https://timsong-cpp.github.io/cppwp/n3337/expr.sizeof#2))
 struct alignas(std::max_align_t) Block
 {
@@ -74,7 +74,7 @@ alignas(std::max_align_t) std::array<char, 2 << 10> context_stack;
 
 /// \brief Points to most recent globally-active block.
 ///
-/// \note volatile atomic for correctness-shouldn't be an issue w/ IRL
+/// \r\note volatile atomic for correctness-shouldn't be an issue w/ IRL
 /// compilers.
 std::atomic<Block*> volatile active_block{
   reinterpret_cast<Block*>(std::begin(context_stack))};
@@ -82,7 +82,7 @@ std::atomic<Block*> volatile active_block{
 /// \brief Points to the active_block latched at the beginning of MT context
 /// loop. AKA: the currently running context.
 ///
-/// \note ONLY ACCESS FROM MT.
+/// \r\note ONLY ACCESS FROM MT.
 volatile Block* latched_block{[]() {
   auto b = reinterpret_cast<Block*>(std::begin(context_stack));
   ::new (b) Block{nullptr, nullptr}; // always have first target block.
@@ -94,7 +94,7 @@ volatile Block* latched_block{[]() {
 void
 handlePipelineErr(int errc)
 {
-  printf("Caught pipeline error with code [%i]: TODO\n", errc);
+  printf("Caught pipeline error with code [%i]: TODO\r\n", errc);
   std::exit(errc);
 }
 
@@ -124,7 +124,7 @@ FunctionContext::start()
 
   __disable_irq();
 
-  printf("Starting up FunctionContext loop.\n");
+  printf("Starting up FunctionContext loop.\r\n");
 
   int             ret;
   volatile Block* last_block = latched_block =
@@ -191,7 +191,7 @@ exit:
   active_block.store(
     const_cast<Block*>(latched_block), std::memory_order_release);
 
-  printf("Terminating FunctionContext loop.\n");
+  printf("Terminating FunctionContext loop.\r\n");
   __enable_irq();
   return;
 }
@@ -230,15 +230,14 @@ FunctionContext::pushOnStack_(FunctionContext* expected, std::size_t size)
 #pragma endregion FunctionContext
 #pragma region    DefaultContext
 
-DefaultContext::DefaultContext(const char* trace_name, int depth) :
-    trace_name_(trace_name ? trace_name : "DefaultContext"), depth_{depth}
+DefaultContext::DefaultContext(const char* name, int depth) : depth_{depth}
 {
 #ifndef NDEBUG
   for (int i = 0; i < depth - 1; ++i)
     debug("--");
   if (depth)
     debug("- ");
-  debug("%s::%s()\n", trace_name_, trace_name_);
+  debug("%s::%s()\r\n", name, name);
 #endif // NDEBUG
 }
 
@@ -250,7 +249,7 @@ DefaultContext::~DefaultContext()
     debug("--");
   if (depth)
     debug("- ");
-  debug("%s::~%s()\n", trace_name_, trace_name_);
+  debug("%s::~%s()\r\n", contextName(), contextName());
 #endif // NDEBUG
 }
 
@@ -263,7 +262,7 @@ DefaultContext::enter()
     debug("--");
   if (depth)
     debug("- ");
-  debug("%s::enter()\n", trace_name_);
+  debug("%s::enter()\r\n", contextName());
 #endif // NDEBUG
   return 0;
 };
@@ -289,7 +288,7 @@ DefaultContext::exit()
     debug("--");
   if (depth)
     debug("- ");
-  debug("%s::exit()\n", trace_name_);
+  debug("%s::exit()\r\n", contextName());
 #endif // NDEBUG
   return 0;
 }
