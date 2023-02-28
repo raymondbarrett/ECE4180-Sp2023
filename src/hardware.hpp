@@ -12,6 +12,7 @@
 #endif // __cplusplus
 
 #include <mbed.h>
+#include <uLCD_4DGL.h>
 
 // ======================= Public Interface ==========================
 
@@ -60,6 +61,9 @@ class DirectionSwitch
 
 extern mbed::BusOut    OnboardLEDs;
 extern DirectionSwitch Switch;
+extern mbed::PwmOut    RGB[3];
+extern mbed::Serial    BTInput;
+extern uLCD_4DGL&      LCD;
 
 // ===================== Detail Implementation =======================
 
