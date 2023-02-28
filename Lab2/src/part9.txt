@@ -1,0 +1,13 @@
+// Hello World to sweep a servo through its full range
+
+#include "mbed.h"
+#include "Servo.h"
+
+Servo myservo(p21);
+AnalogIn potIn(p15);
+
+int main() {
+	while(1){
+      myservo = potIn;
+	}
+}

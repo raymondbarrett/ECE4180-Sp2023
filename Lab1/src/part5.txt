@@ -61,16 +61,22 @@ inline Nav_Switch::operator int ()
 }
 
 Nav_Switch myNav( p9, p6, p7, p5, p8); //pin order on Sparkfun Nav SW breakout
+AnalogIn mypotentiometer(p16);
 
 int main()
 {
     int16_t x = 0;
     int16_t y = 0;
     uint8_t left_click = 0;
+	int8_t z = 0;
+	uint8_t counter = 0;
     while (1) {
         //check relative mouse movement
         x=0;
         y=0;
+		z=0;
+		if (mypotentiometer > 0.66 && !(counter%20)) z=1;
+		if (mypotentiometer < 0.33 && !(counter%20)) z=-1;
         if (myNav.up()) x=-1;
         if (myNav.down()) x=1;
         if (myNav.left()) y=1;
@@ -79,7 +85,8 @@ int main()
         if (myNav.fire()) left_click = 1;
         if (!myNav.fire())left_click = 0;
         //send a mouse data packet to PC
-        mouse.update(x, y, left_click, 0);
+        mouse.update(x, y, left_click, z);
+		counter++;
         wait(0.001);
     }
 }

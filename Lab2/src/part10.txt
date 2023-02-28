@@ -1,0 +1,17 @@
+// Hello World to sweep a servo through its full range
+
+
+
+
+#include "mbed.h"
+#include "Motor.h"
+
+Motor m(p23, p6, p5); // pwm, fwd, rev
+AnalogIn potIn(p15);
+int main() {
+	while(1){
+       m.speed((potIn*2)-1); 
+       wait(0.02);
+    }
+}
+
