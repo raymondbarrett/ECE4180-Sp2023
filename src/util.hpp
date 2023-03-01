@@ -13,6 +13,8 @@
 
 #include <cstdlib>
 
+#include <mbed.h>
+
 // ======================= Public Interface ==========================
 
 template<class T>
@@ -46,13 +48,9 @@ cutBuffer(char* buffer, int buffer_len, const char* str, int start)
 }
 
 /// \brief call only once. not thread-safe.
-#define CALL_ONCE(expr)                                        \
-  do {                                                         \
-    static bool _ = false;                                     \
-    if (!_) {                                                  \
-      static volatile int __ = (static_cast<void>((expr)), 0); \
-      _                      = true;                           \
-    }                                                          \
+#define CALL_ONCE(expr)                                     \
+  do {                                                      \
+    static volatile int _ = (static_cast<void>((expr)), 0); \
   } while (false)
 
 /// \brief Homebrew nullptr definition to mirror c++11. Stolen from

@@ -8,49 +8,37 @@
 #define MBED_THREAD_STATS_ENABLED
 #define DEBUG_MEM_USAGE
 
+#include <stdint.h>
+
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 #include <mbed.h>
 #include <rtos.h>
-
-#include <platform/mbed_stats.h>
 
 #include <uLCD_4DGL.h>
 
 #include "hardware.hpp"
 #include "util.hpp"
 
+// Fine-grained control of stack sizes, to get more from the system.
+//
+// The stack sizes here are just approximate and just eyeballed /
+// trial-and-error to work. Still massive improvements over the 2048 default
+// size however.
+//
+// Intuition suggests that each stack frame is at least roughly 64 bytes.
 #define MAX_THREADS (4)
+#define TH_LED_SSIZE (128)
+#define TH_LCD_TIMER_SSIZE (1536) // 1.5 << 10
+#define TH_LCD_EFFECT_SSIZE (DEFAULT_STACK_SIZE)
 
 // ======================= Local Definitions =========================
 
 namespace {
 
 rtos::Mutex lcd_mutex;
-
-/// \brief Get the max stack usage of the current thread.
-///
-/// Could probably be implemented a bit more efficiently, but want to use public
-/// api.
-void
-printMemUsage()
-{
-  mbed_stats_stack_t stats[MAX_THREADS];
-  std::size_t        stats_ct = mbed_stats_stack_get_each(stats, MAX_THREADS);
-  std::uint32_t      tid = reinterpret_cast<std::uint32_t>(Thread::gettid());
-
-  PC.printf("\rPRINT MEM USAGE: FOUND %d threads\n", stats_ct);
-  for (std::size_t i = 0; i < stats_ct; ++i) {
-    if (stats[i].thread_id == tid) {
-      PC.printf(
-        "\r\nThread [%d] mem used: %d / %d",
-        tid,
-        stats[i].reserved_size,
-        stats[i].max_size);
-    }
-  }
-}
 
 /// \brief Create lightning effects
 void
@@ -61,10 +49,6 @@ lightning_main()
     RGB = 0xccccdd;
     rtos::Thread::wait(static_cast<int>(200 * randf()));
     RGB = 0;
-
-#ifdef DEBUG_MEM_USAGE
-    CALL_ONCE(printMemUsage());
-#endif // DEBUG_MEM_USAGE
   } while (true);
 }
 
@@ -72,31 +56,27 @@ lightning_main()
 void
 timer_main()
 {
-  static const std::time_t kSecondStart = std::time(NULL);
+  static const std::time_t kSecondStart = std::time(nullptr);
 
-  PC.printf("Crap");
   do {
     {
       LockGuard<rtos::Mutex> _(lcd_mutex);
-      std::time_t            seconds = std::time(NULL) - kSecondStart;
-      char                   seconds_buffer[64];
+      std::time_t            seconds = std::time(nullptr) - kSecondStart;
+      char                   fmt_buf[LCD_MAX_TEXT_WIDTH * 2];
 
       LCD.filled_rectangle(
         0, 0, LCD_MAX_WIDTH - 1, LCD_FONT_HEIGHT * 1 + 3, 0xffaaaa);
       LCD.textbackground_color(0xffaaaa);
-
-      std::sprintf(seconds_buffer, "Time: %d", seconds);
-      int len =
-        cutBuffer(seconds_buffer, LCD_MAX_TEXT_WIDTH, seconds_buffer, 0);
-
-      LCD.text_string(seconds_buffer, 0, 0, FONT_7X8, 0xff0000);
+      std::sprintf(
+        fmt_buf,
+        "Time: %02d:%02d:%02d",
+        seconds / 3600,
+        (seconds / 60) % 60,
+        seconds % 60);
+      int len = cutBuffer(fmt_buf, LCD_MAX_TEXT_WIDTH, fmt_buf, 0);
+      LCD.text_string(fmt_buf, LCD_MAX_TEXT_WIDTH - len, 0, FONT_7X8, 0xff0000);
     }
     rtos::Thread::wait(1000);
-
-#ifdef DEBUG_MEM_USAGE
-    CALL_ONCE(printMemUsage());
-    PC.printf("SHIT");
-#endif // DEBUG_MEM_USAGE
   } while (true);
 }
 
@@ -125,10 +105,6 @@ LCDLightning_main(void)
         0x000000);
     }
     rtos::Thread::wait(static_cast<int>(200 * randf()));
-
-#ifdef DEBUG_MEM_USAGE
-    CALL_ONCE(printMemUsage());
-#endif // DEBUG_MEM_USAGE
   } while (true);
 }
 
@@ -146,6 +122,11 @@ void __attribute__((noreturn)) die()
   } while (true);
 }
 
+void
+updateSwitchVal()
+{
+}
+
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -155,18 +136,11 @@ int
 main()
 {
   // Use advanced thread priority/stack size creation for better control.
-  //
-  // The stack sizes here are just approximate and just eyeballed to be safe.
-  // Still massive improvements over the 2048 default size however.
-  rtos::Thread th_led(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
-  rtos::Thread th_lcd_timer(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
-  rtos::Thread th_lcd_effect(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
+  rtos::Thread th_led(osPriorityBelowNormal, TH_LED_SSIZE, nullptr);
+  rtos::Thread th_lcd_timer(osPriorityNormal, TH_LCD_TIMER_SSIZE, nullptr);
+  rtos::Thread th_lcd_effect(osPriorityNormal, TH_LCD_EFFECT_SSIZE, nullptr);
 
-  // rtos::Thread __(timer_main);
   th_lcd_timer.start(timer_main);
-
-  rtos::Thread::yield();
-
   do {
     int mode = 0;
 
@@ -180,17 +154,19 @@ main()
       }
     }
 
-    if (Switch.up) {
+    if (Switch.get_up()) {
       mode = 1;
-    } else if (Switch.down) {
+    } else if (Switch.get_down()) {
       mode = 2;
-    } else if (Switch.left) {
+    } else if (Switch.get_left()) {
       mode = 3;
-    } else if (Switch.right) {
+    } else if (Switch.get_right()) {
       mode = 4;
-    } else if (Switch.center) {
+    } else if (Switch.get_center()) {
       mode = 5;
     }
+
+    PC.printf("Mode: %d\r\n", mode);
 
     switch (mode) {
       case 0:
@@ -205,7 +181,9 @@ main()
       } break;
 
       default:
+        break;
         die();
     }
+
   } while (true);
 }

@@ -29,8 +29,12 @@ RGB_()
 struct Switch&
 Switch_()
 {
+  // static struct Switch sw(
+  // PIN_SW_UP, PIN_SW_DOWN, PIN_SW_LEFT, PIN_SW_RIGHT, PIN_SW_CENTER);
+
+  // Swapped because of orientation on breadboard.
   static struct Switch sw(
-    PIN_SW_UP, PIN_SW_DOWN, PIN_SW_LEFT, PIN_SW_RIGHT, PIN_SW_CENTER);
+    PIN_SW_DOWN, PIN_SW_UP, PIN_SW_RIGHT, PIN_SW_LEFT, PIN_SW_CENTER);
   return sw;
 }
 

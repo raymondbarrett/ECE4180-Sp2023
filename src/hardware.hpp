@@ -70,6 +70,12 @@ struct Switch
   {
   }
 
+  bool get_up() { return !up; }
+  bool get_down() { return !down; }
+  bool get_left() { return !left; }
+  bool get_right() { return !right; }
+  bool get_center() { return !center; }
+
   mbed::InterruptIn up, down, left, right, center;
 };
 
