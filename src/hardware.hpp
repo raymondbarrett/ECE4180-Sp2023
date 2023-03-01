@@ -20,7 +20,7 @@
 #define PIN_G p23
 #define PIN_B p22
 #define PIN_MIC p20
-#define PIN_SPEAK p21
+#define PIN_SPEAK p18
 #define PIN_SW_RIGHT p29 // SWAP THESE FOR DIRECTINOS.
 #define PIN_SW_DOWN p28
 #define PIN_SW_LEFT p27
@@ -34,36 +34,51 @@
 
 #define ONBOARD_LED_COUNT (4)
 
-class DirectionSwitch
+#define LCD_MAX_WIDTH (128)
+#define LCD_MAX_HEIGHT LCD_MAX_WIDTH
+#define LCD_FONT_WIDTH (7)
+#define LCD_FONT_HEIGHT (8)
+#define LCD_MAX_TEXT_WIDTH (LCD_MAX_WIDTH / LCD_FONT_WIDTH)
+#define LCD_MAX_TEXT_HEIGHT (LCD_MAX_HEIGHT / LCD_FONT_HEIGHT)
+
+/// \brief Nice wrapper for RGB LED.
+struct RGB
 {
- public:
-  /// \brief Construct the switch class with these pins.
-  DirectionSwitch(
-    mbed::PinName u,
-    mbed::PinName d,
-    mbed::PinName l,
-    mbed::PinName r,
-    mbed::PinName c) :
-      switches_(u, d, l, r, c)
+  RGB(PinName r_, PinName g_, PinName b_) : r(r_), g(g_), b(b_) {}
+
+  RGB& operator=(int x)
   {
-    switches_.pinMode(PullUp)
+    r = static_cast<float>((x >> 16) & 0xff);
+    g = static_cast<float>((x >> 8) & 0xff);
+    b = static_cast<float>((x >> 8) & 0xff);
+    return *this;
   }
 
-  bool up() { return !switches_[0]; }
-  bool down() { return !switches_[1]; }
-  bool left() { return !switches_[2]; }
-  bool right() { return !switches_[3]; }
-  bool center() { return !switches_[4]; }
-
- private:
-  mbed::BusIn switches_;
+  mbed::PwmOut r, g, b;
 };
 
-extern mbed::BusOut    OnboardLEDs;
-extern DirectionSwitch Switch;
-extern mbed::PwmOut    RGB[3];
-extern mbed::Serial    BTInput;
-extern uLCD_4DGL&      LCD;
+/// \brief Nice wrapper for 5-mode switch.
+struct Switch
+{
+  Switch(
+    PinName up_,
+    PinName down_,
+    PinName left_,
+    PinName right_,
+    PinName center_) :
+      up(up_), down(down_), left(left_), right(right_), center(center_)
+  {
+  }
+
+  mbed::InterruptIn up, down, left, right, center;
+};
+
+extern mbed::BusOut&  OnboardLEDs;
+extern struct RGB&    RGB;
+extern struct Switch& Switch;
+extern mbed::Serial&  BTInput;
+extern mbed::Serial&  PC;
+extern uLCD_4DGL&     LCD;
 
 // ===================== Detail Implementation =======================
 
