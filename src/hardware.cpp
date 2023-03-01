@@ -61,13 +61,21 @@ LCD_()
   return lcd;
 }
 
+mbed::AnalogOut&
+Speaker_()
+{
+  static mbed::AnalogOut speaker(PIN_SPEAK);
+  return speaker;
+}
+
 } // namespace
 
 // ====================== Global Definitions =========================
 
-mbed::BusOut&  OnboardLEDs = OnboardLEDs_();
-struct RGB&    RGB         = RGB_();
-struct Switch& Switch      = Switch_();
-mbed::Serial&  BTInput     = BTInput_();
-mbed::Serial&  PC          = PC_();
-uLCD_4DGL&     LCD         = LCD_();
+mbed::BusOut&    OnboardLEDs = OnboardLEDs_();
+struct RGB&      RGB         = RGB_();
+struct Switch&   Switch      = Switch_();
+mbed::Serial&    BTInput     = BTInput_();
+mbed::Serial&    PC          = PC_();
+uLCD_4DGL&       LCD         = LCD_();
+mbed::AnalogOut& Speaker     = Speaker_();

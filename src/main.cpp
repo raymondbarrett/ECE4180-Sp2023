@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -17,6 +18,7 @@
 #include <mbed.h>
 #include <rtos.h>
 
+#include <MSCFileSystem.h>
 #include <uLCD_4DGL.h>
 
 #include "hardware.hpp"
@@ -122,10 +124,10 @@ void __attribute__((noreturn)) die()
   } while (true);
 }
 
-void
-updateSwitchVal()
-{
-}
+// Huge Audio buffer.
+#define AUDIO_BUF_SIZE (16 << 10)
+
+unsigned char audio_buf[AUDIO_BUF_SIZE];
 
 } // namespace
 
@@ -136,11 +138,20 @@ int
 main()
 {
   // Use advanced thread priority/stack size creation for better control.
-  rtos::Thread th_led(osPriorityBelowNormal, TH_LED_SSIZE, nullptr);
+
+  // Very low prio since its very low resrouce + lots of waiting.
+  rtos::Thread th_led(osPriorityLow, TH_LED_SSIZE, nullptr);
+
+  // has to be normal prio to always continue while main thread waits.
   rtos::Thread th_lcd_timer(osPriorityNormal, TH_LCD_TIMER_SSIZE, nullptr);
-  rtos::Thread th_lcd_effect(osPriorityNormal, TH_LCD_EFFECT_SSIZE, nullptr);
+
+  //
+  rtos::Thread th_lcd_effect(
+    osPriorityBelowNormal, TH_LCD_EFFECT_SSIZE, nullptr);
 
   th_lcd_timer.start(timer_main);
+  int last_mode = 0;
+  /*
   do {
     int mode = 0;
 
@@ -175,15 +186,35 @@ main()
       case 1: {
         th_led.start(lightning_main);
         th_lcd_effect.start(LCDLightning_main);
-        rtos::Thread::wait(10000);
+
         th_led.terminate();
         th_lcd_effect.terminate();
+        last_mode = mode;
       } break;
 
       default:
         break;
         die();
     }
-
   } while (true);
+  */
+
+  // /*
+  MSCFileSystem usb("usb");
+  {
+    mbed::Timer t;
+    t.start();
+    FILE* file = std::fopen("/usb/sample.wav", "r");
+    int   init = t.read_us();
+    int   c;
+    // while (c = std::fgetc(file) != EOF) {
+    // }
+    while (std::fread(audio_buf, 1, AUDIO_BUF_SIZE, file)) {
+    }
+    int read = t.read_us();
+    std::fclose(file);
+    int close = t.read_us();
+    PC.printf(
+      "[init, read, close]: %d, %d, %d\r\n", init, read - init, close - read);
+  }
 }

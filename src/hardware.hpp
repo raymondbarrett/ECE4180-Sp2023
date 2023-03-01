@@ -79,12 +79,13 @@ struct Switch
   mbed::InterruptIn up, down, left, right, center;
 };
 
-extern mbed::BusOut&  OnboardLEDs;
-extern struct RGB&    RGB;
-extern struct Switch& Switch;
-extern mbed::Serial&  BTInput;
-extern mbed::Serial&  PC;
-extern uLCD_4DGL&     LCD;
+extern mbed::BusOut&    OnboardLEDs;
+extern struct RGB&      RGB;
+extern struct Switch&   Switch;
+extern mbed::Serial&    BTInput;
+extern mbed::Serial&    PC;
+extern uLCD_4DGL&       LCD;
+extern mbed::AnalogOut& Speaker;
 
 // ===================== Detail Implementation =======================
 

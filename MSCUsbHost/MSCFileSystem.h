@@ -40,9 +40,18 @@ class MSCFileSystem : public FATFileSystem
    *  name - The name used to access the filesystem
    */
   MSCFileSystem(const char* name);
-  virtual int           disk_initialize();
-  virtual int           disk_write(const char* buffer, int block_number);
-  virtual int           disk_read(char* buffer, int block_number);
+  virtual int disk_initialize();
+  virtual int disk_write(const char* buffer, int block_number);
+  virtual int disk_write(const uint8_t* buffer, uint32_t sector, uint32_t count)
+  {
+    return disk_write((const char*)buffer, (int)sector);
+  }
+  virtual int disk_read(char* buffer, int block_number);
+  virtual int disk_read(uint8_t* buffer, uint32_t sector, uint32_t count)
+  {
+    return disk_read((char*)buffer, (int)sector);
+  }
+
   virtual int           disk_status();
   virtual int           disk_sync();
   virtual std::uint32_t disk_sectors();
