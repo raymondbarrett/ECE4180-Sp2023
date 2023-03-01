@@ -32,7 +32,9 @@ randf()
   return (rand() / (float(RAND_MAX)));
 }
 
-/// \brief
+/// \brief Cut a string to fit into the buffer.
+///
+/// \return Amount of characters written.
 inline int
 cutBuffer(char* buffer, int buffer_len, const char* str, int start)
 {
@@ -42,6 +44,38 @@ cutBuffer(char* buffer, int buffer_len, const char* str, int start)
   }
   return i;
 }
+
+/// \brief call only once. not thread-safe.
+#define CALL_ONCE(expr)                                        \
+  do {                                                         \
+    static bool _ = false;                                     \
+    if (!_) {                                                  \
+      static volatile int __ = (static_cast<void>((expr)), 0); \
+      _                      = true;                           \
+    }                                                          \
+  } while (false)
+
+/// \brief Homebrew nullptr definition to mirror c++11. Stolen from
+/// [here](https://stackoverflow.com/questions/44517556/how-to-define-our-own-nullptr-in-c98).
+const class nullptr_t
+{
+ public:
+  template<class T>
+  operator T*() const
+  {
+    return 0;
+  }
+
+  template<class C, class T>
+  operator T C::*() const
+  {
+    return 0;
+  }
+
+ private:
+  void operator&() const;
+
+} nullptr = {};
 
 // ===================== Detail Implementation =======================
 

@@ -5,6 +5,8 @@
 /// \brief The main file.
 
 #define MBED_NO_GLOBAL_USING_DIRECTIVE
+#define MBED_THREAD_STATS_ENABLED
+#define DEBUG_MEM_USAGE
 
 #include <cstdlib>
 #include <cstring>
@@ -12,35 +14,67 @@
 #include <mbed.h>
 #include <rtos.h>
 
+#include <platform/mbed_stats.h>
+
 #include <uLCD_4DGL.h>
 
 #include "hardware.hpp"
 #include "util.hpp"
 
+#define MAX_THREADS (4)
+
 // ======================= Local Definitions =========================
 
 namespace {
 
-/// \brief Create lightning effects
+rtos::Mutex lcd_mutex;
+
+/// \brief Get the max stack usage of the current thread.
+///
+/// Could probably be implemented a bit more efficiently, but want to use public
+/// api.
 void
-lightning_main(void const* args)
+printMemUsage()
 {
-  while (1) {
-    rtos::Thread::wait(3000 * pow(randf(), 3));
-    RGB = 0xccccdd;
-    rtos::Thread::wait(200 * randf());
-    RGB = 0;
+  mbed_stats_stack_t stats[MAX_THREADS];
+  std::size_t        stats_ct = mbed_stats_stack_get_each(stats, MAX_THREADS);
+  std::uint32_t      tid = reinterpret_cast<std::uint32_t>(Thread::gettid());
+
+  PC.printf("\rPRINT MEM USAGE: FOUND %d threads\n", stats_ct);
+  for (std::size_t i = 0; i < stats_ct; ++i) {
+    if (stats[i].thread_id == tid) {
+      PC.printf(
+        "\r\nThread [%d] mem used: %d / %d",
+        tid,
+        stats[i].reserved_size,
+        stats[i].max_size);
+    }
   }
 }
 
-rtos::Mutex lcd_mutex;
+/// \brief Create lightning effects
+void
+lightning_main()
+{
+  do {
+    rtos::Thread::wait(static_cast<int>(3000 * pow(randf(), 3)));
+    RGB = 0xccccdd;
+    rtos::Thread::wait(static_cast<int>(200 * randf()));
+    RGB = 0;
+
+#ifdef DEBUG_MEM_USAGE
+    CALL_ONCE(printMemUsage());
+#endif // DEBUG_MEM_USAGE
+  } while (true);
+}
 
 /// \brief The timer LCD thread function.
 void
-timer_main(void)
+timer_main()
 {
   static const std::time_t kSecondStart = std::time(NULL);
 
+  PC.printf("Crap");
   do {
     {
       LockGuard<rtos::Mutex> _(lcd_mutex);
@@ -58,6 +92,11 @@ timer_main(void)
       LCD.text_string(seconds_buffer, 0, 0, FONT_7X8, 0xff0000);
     }
     rtos::Thread::wait(1000);
+
+#ifdef DEBUG_MEM_USAGE
+    CALL_ONCE(printMemUsage());
+    PC.printf("SHIT");
+#endif // DEBUG_MEM_USAGE
   } while (true);
 }
 
@@ -86,6 +125,10 @@ LCDLightning_main(void)
         0x000000);
     }
     rtos::Thread::wait(static_cast<int>(200 * randf()));
+
+#ifdef DEBUG_MEM_USAGE
+    CALL_ONCE(printMemUsage());
+#endif // DEBUG_MEM_USAGE
   } while (true);
 }
 
@@ -107,10 +150,22 @@ void __attribute__((noreturn)) die()
 
 // ====================== Global Definitions =========================
 
+/// \brief The main function.
 int
 main()
 {
-  rtos::Thread timer_th(timer_main);
+  // Use advanced thread priority/stack size creation for better control.
+  //
+  // The stack sizes here are just approximate and just eyeballed to be safe.
+  // Still massive improvements over the 2048 default size however.
+  rtos::Thread th_led(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
+  rtos::Thread th_lcd_timer(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
+  rtos::Thread th_lcd_effect(osPriorityNormal, DEFAULT_STACK_SIZE, nullptr);
+
+  // rtos::Thread __(timer_main);
+  th_lcd_timer.start(timer_main);
+
+  rtos::Thread::yield();
 
   do {
     int mode = 0;
@@ -142,11 +197,11 @@ main()
         break;
 
       case 1: {
-        rtos::Thread lightning_th(lightning_main);
-        rtos::Thread lightning_lcd_th(LCDLightning_main);
+        th_led.start(lightning_main);
+        th_lcd_effect.start(LCDLightning_main);
         rtos::Thread::wait(10000);
-        lightning_th.terminate();
-        lightning_lcd_th.terminate();
+        th_led.terminate();
+        th_lcd_effect.terminate();
       } break;
 
       default:
