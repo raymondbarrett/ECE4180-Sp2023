@@ -68,6 +68,20 @@ Speaker_()
   return speaker;
 }
 
+MSCFileSystem&
+USB_()
+{
+  static MSCFileSystem usb("usb");
+  return usb;
+}
+
+MODDMA&
+DMA_()
+{
+  static MODDMA dma;
+  return dma;
+}
+
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -79,3 +93,5 @@ mbed::Serial&    BTInput     = BTInput_();
 mbed::Serial&    PC          = PC_();
 uLCD_4DGL&       LCD         = LCD_();
 mbed::AnalogOut& Speaker     = Speaker_();
+MSCFileSystem&   USB         = USB_();
+MODDMA&          DMA         = DMA_();

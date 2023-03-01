@@ -35,6 +35,9 @@
 #define TH_LED_SSIZE (128)
 #define TH_LCD_TIMER_SSIZE (1536) // 1.5 << 10
 #define TH_LCD_EFFECT_SSIZE (DEFAULT_STACK_SIZE)
+#define TH_MUSIC_PLAYER_SSIZE (DEFAULT_STACK_SIZE)
+
+#define DAC_POWER_MODE (1 << 16)
 
 // ======================= Local Definitions =========================
 
@@ -125,9 +128,153 @@ void __attribute__((noreturn)) die()
 }
 
 // Huge Audio buffer.
-#define AUDIO_BUF_SIZE (16 << 10)
+#define AUDIO_BUF_BANK_SIZE (2 << 10)
 
-unsigned char audio_buf[AUDIO_BUF_SIZE];
+// switching audio buffer.
+std::uint32_t audio_buf[2][AUDIO_BUF_BANK_SIZE];
+
+void
+musicPlayer_err()
+{
+  error("Error in DMA Callback\r\n");
+}
+
+struct musicPlayer_param_t
+{
+  const char*   name;
+  rtos::Thread* thread;
+};
+
+struct musicPlayer_callback_t
+{
+  // osThreadId tid;
+  volatile bool& flag;
+
+  // musicPlayer_callback_t(osThreadId tid_) : tid(tid_) {}
+  musicPlayer_callback_t(volatile bool& flag_) : flag(flag_) {}
+
+  void operator()()
+  {
+    OnboardLEDs[0] = !OnboardLEDs[0];
+    // osSignalSet(tid, 0x1);
+    flag = true;
+  }
+};
+
+void
+musicPlayer_main(const void* p)
+{
+  const char*   name      = ((musicPlayer_param_t*)p)->name;
+  osThreadId    tid       = rtos::Thread::gettid();
+  std::size_t   read_ct   = 0;
+  int           curr_bank = 0;
+  bool          more      = true;
+  FILE*         fp;
+  MODDMA_Config bank_conf[2];
+  volatile bool need_more = false;
+  // musicPlayer_callback_t callback(tid);
+  musicPlayer_callback_t callback(need_more);
+
+  fp = std::fopen(name, "r");
+  if (!fp) {
+    error("Cannot open file %s!\n\r", name);
+    return;
+  }
+
+  // fill initial buffer.
+  for (int i = 0; i < 2; ++i) {
+    read_ct =
+      std::fread(audio_buf[i], sizeof(std::uint32_t), AUDIO_BUF_BANK_SIZE, fp);
+    if (std::feof(fp)) {
+      more = false;
+    } else if (std::ferror(fp)) {
+      error("Error reading file %s!\n\r", name);
+      goto end;
+    } else if (read_ct < AUDIO_BUF_BANK_SIZE) {
+      std::memset(audio_buf[i], 0, AUDIO_BUF_BANK_SIZE - read_ct);
+      more = false;
+    }
+    for (int j = 0; j < read_ct; ++j) {
+      audio_buf[i][j] = DAC_POWER_MODE | ((audio_buf[i][j] << 6) & 0xFFC0);
+    }
+  }
+
+  PC.printf("WOAH\r\n");
+
+  (&bank_conf[0])
+    ->channelNum(MODDMA::Channel_0)
+    ->srcMemAddr((uint32_t)&audio_buf[0])
+    ->dstMemAddr(MODDMA::DAC)
+    ->transferSize(AUDIO_BUF_BANK_SIZE)
+    ->transferType(MODDMA::m2p)
+    ->dstConn(MODDMA::DAC)
+    ->attach_tc(&callback, &musicPlayer_callback_t::operator())
+    ->attach_err(musicPlayer_err);
+
+  (&bank_conf[1])
+    ->channelNum(MODDMA::Channel_1)
+    ->srcMemAddr((uint32_t)&audio_buf[1])
+    ->dstMemAddr(MODDMA::DAC)
+    ->transferSize(AUDIO_BUF_BANK_SIZE)
+    ->transferType(MODDMA::m2p)
+    ->dstConn(MODDMA::DAC)
+    ->attach_tc(&callback, &musicPlayer_callback_t::operator())
+    ->attach_err(musicPlayer_err);
+
+  // Calculating the transfer frequency:
+  // By default, the Mbed library sets the PCLK_DAC clock value
+  // to 24MHz. Divide this by amount of samples * rate. Sample rate = 384kb/s,
+  // so thats 0x60000 samples.
+  LPC_DAC->DACCNTVAL = 24000000 / AUDIO_BUF_BANK_SIZE;
+
+  if (!DMA.Prepare(&bank_conf[0])) {
+    error("Error preparing DMA!\n\r");
+    goto end;
+  }
+
+  LPC_DAC->DACCTRL |= (3UL << 2);
+
+  PC.printf("WOAH2\r\n");
+
+  // osSignalWait(0x1, osWaitForever);
+  while (!need_more)
+    rtos::Thread::wait(2);
+
+  while (more) {
+    PC.printf("WOAH3\r\n");
+
+    // swap to next bank...
+    curr_bank = (curr_bank + 1) % 2;
+    DMA.Disable((MODDMA::CHANNELS)DMA.getConfig()->channelNum());
+    DMA.Prepare(&bank_conf[curr_bank]);
+    if (DMA.irqType() == MODDMA::TcIrq)
+      DMA.clearTcIrq();
+
+    // read in new bank...
+    int nb = (curr_bank + 1) % 2;
+    read_ct =
+      std::fread(audio_buf[nb], sizeof(std::uint32_t), AUDIO_BUF_BANK_SIZE, fp);
+    if (std::feof(fp)) {
+      more = false;
+    } else if (std::ferror(fp)) {
+      error("Error reading file %s!\n\r", name);
+      goto end2;
+    } else if (read_ct < AUDIO_BUF_BANK_SIZE) {
+      std::memset(audio_buf[nb], 0, AUDIO_BUF_BANK_SIZE - read_ct);
+      more = false;
+    }
+    // Thread::signal_wait(0x1);
+    while (!need_more)
+      rtos::Thread::wait(2);
+  }
+
+  PC.printf("WOAH4\r\n");
+
+end2:
+  DMA.Disable((MODDMA::CHANNELS)DMA.getConfig()->channelNum());
+end:
+  std::fclose(fp);
+}
 
 } // namespace
 
@@ -142,15 +289,20 @@ main()
   // Very low prio since its very low resrouce + lots of waiting.
   rtos::Thread th_led(osPriorityLow, TH_LED_SSIZE, nullptr);
 
-  // has to be normal prio to always continue while main thread waits.
+  // Has to be normal prio to always continue while main thread waits.
   rtos::Thread th_lcd_timer(osPriorityNormal, TH_LCD_TIMER_SSIZE, nullptr);
 
-  //
   rtos::Thread th_lcd_effect(
     osPriorityBelowNormal, TH_LCD_EFFECT_SSIZE, nullptr);
 
+  rtos::Thread th_musicPlayer(
+    osPriorityRealtime, TH_MUSIC_PLAYER_SSIZE, nullptr);
+
   th_lcd_timer.start(timer_main);
   int last_mode = 0;
+
+  musicPlayer_param_t params = {"/usb/sample.wav", &th_musicPlayer};
+  th_musicPlayer.start(mbed::callback(musicPlayer_main, &params));
   /*
   do {
     int mode = 0;
@@ -200,21 +352,4 @@ main()
   */
 
   // /*
-  MSCFileSystem usb("usb");
-  {
-    mbed::Timer t;
-    t.start();
-    FILE* file = std::fopen("/usb/sample.wav", "r");
-    int   init = t.read_us();
-    int   c;
-    // while (c = std::fgetc(file) != EOF) {
-    // }
-    while (std::fread(audio_buf, 1, AUDIO_BUF_SIZE, file)) {
-    }
-    int read = t.read_us();
-    std::fclose(file);
-    int close = t.read_us();
-    PC.printf(
-      "[init, read, close]: %d, %d, %d\r\n", init, read - init, close - read);
-  }
 }

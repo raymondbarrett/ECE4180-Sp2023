@@ -12,6 +12,9 @@
 #endif // __cplusplus
 
 #include <mbed.h>
+
+#include <MODDMA.h>
+#include <MSCFileSystem.h>
 #include <uLCD_4DGL.h>
 
 // ======================= Public Interface ==========================
@@ -86,6 +89,8 @@ extern mbed::Serial&    BTInput;
 extern mbed::Serial&    PC;
 extern uLCD_4DGL&       LCD;
 extern mbed::AnalogOut& Speaker;
+extern MSCFileSystem&   USB;
+extern MODDMA&          DMA;
 
 // ===================== Detail Implementation =======================
 
