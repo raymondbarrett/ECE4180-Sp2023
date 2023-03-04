@@ -159,7 +159,7 @@ main()
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
 
-  MusicThread::Params params = {"/usb/sample4.pcm"};
+  MusicThread::Params params = {"/usb/tetris-hq.pcm"};
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
   th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
   th_musicPlayer.join();

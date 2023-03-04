@@ -13,9 +13,6 @@
 
 #include "hardware.hpp"
 
-#define LOAD_PROFILING 1
-#define MAIN_UPDATE 1
-
 // Huge Audio buffer.
 #define AUDIO_BUF_BANK_SIZE (2 << 10)
 #define AUDIO_BUF_BANK_COUNT (2)
@@ -63,16 +60,11 @@ struct DataCallback_
 
   void operator()()
   {
-#if defined(MAIN_UPDATE) && MAIN_UPDATE
-    LPC_DAC->DACCTRL &= ~(0xC); // Stop running DAC.
-    DMA.Disable((MODDMA::CHANNELS)DMA.getConfig()->channelNum());
-#else
     curr_bank = (curr_bank + 1) % AUDIO_BUF_BANK_COUNT;
     DMA.Disable((MODDMA::CHANNELS)DMA.getConfig()->channelNum());
     DMA.Prepare(&bank_conf[curr_bank]);
     if (DMA.irqType() == MODDMA::TcIrq)
       DMA.clearTcIrq();
-#endif
     osSignalSet(tid, DATA_NEEDED_SIGNAL);
   }
 };
@@ -83,15 +75,12 @@ struct DataCallback_
 int
 readBuffer_(FILE* fp, bool& more, std::int32_t* buffer)
 {
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-  static mbed::Timer   load_profile_timer_;
-  static std::uint64_t loads_    = 0;
-  static std::uint64_t load_sum_ = 0;
-  load_profile_timer_.start();
-  load_profile_timer_.reset();
-#endif
-
+#if defined(RAW_DMA) && RAW_DMA
+  std::size_t read_ct =
+    std::fread(buffer, sizeof(*buffer), AUDIO_BUF_BANK_SIZE, fp);
+#else
   std::size_t read_ct = std::fread(buffer, 1, AUDIO_BUF_BANK_SIZE, fp);
+#endif
   if (read_ct < AUDIO_BUF_BANK_SIZE) {
     if (std::ferror(fp)) {
       return 1;
@@ -101,21 +90,13 @@ readBuffer_(FILE* fp, bool& more, std::int32_t* buffer)
       more = false;
     }
   }
-  for (int i = read_ct - 1; i >= 0; --i) {
-    // int val   = reinterpret_cast<std::uint8_t*>(buffer)[i] << 10;
-    // buffer[i] = (static_cast<int>(val / 256.0) << 6) & 0xFFC0;
-    buffer[i] = (reinterpret_cast<std::uint8_t*>(buffer)[i] << 8) & 0xFFC0;
-  }
-
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-  loads_ += 1;
-  load_sum_ += load_profile_timer_.read_us();
-  if (!more)
-    debug(
-      "[LOAD_PROFILING@MusicThread::readBuffer_] Final load time average: "
-      "(%lu, %lfus)\n\r",
-      loads_,
-      double(load_sum_) / loads_);
+#if defined(RAW_DMA) && RAW_DMA
+  for (int i = read_ct - 1; i >= 0; --i)
+    buffer[i] =
+      (reinterpret_cast<std::uint8_t*>(buffer)[i * 4 + 1] << 8) & 0xFFC0;
+#else
+  for (int i = read_ct - 1; i >= 0; --i)
+    buffer[i] = reinterpret_cast<std::uint8_t*>(buffer)[i] << 8;
 #endif
   return 0;
 }
@@ -181,7 +162,7 @@ main(const void* p)
   }
 
   // Configure and start DAC.
-  LPC_DAC->DACCNTVAL = static_cast<std::uint16_t>(kClockFreq / 2 / 12000);
+  LPC_DAC->DACCNTVAL = static_cast<std::uint16_t>(kClockFreq / 2 / 48000);
   LPC_DAC->DACCTRL |= 0xC; // Start running DAC.
 
   debug("[MusicThread::main] DAC enabled.\n\r");
@@ -192,43 +173,16 @@ main(const void* p)
 
   // Start audio buffering loop.
   debug("[MusicThread::main] Starting audio buffering idle loop.\n\r");
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-  static mbed::Timer   read_profile_timer_;
-  static std::uint64_t reads_    = 0;
-  static std::uint64_t read_sum_ = 0;
-  read_profile_timer_.start();
-#endif
   osSignalWait(DATA_NEEDED_SIGNAL, osWaitForever);
   while (more) {
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-    reads_ += 1;
-    read_sum_ += read_profile_timer_.read_us();
-#endif
-#if defined(MAIN_UPDATE) && MAIN_UPDATE
-    curr_bank = (curr_bank + 1) % AUDIO_BUF_BANK_COUNT;
-    DMA.Prepare(&bank_conf[curr_bank]);
-    if (DMA.irqType() == MODDMA::TcIrq)
-      DMA.clearTcIrq();
-    LPC_DAC->DACCTRL |= 0xC; // Start running DAC.
-#endif
     int next_bank =
       (curr_bank - 1 + AUDIO_BUF_BANK_COUNT) % AUDIO_BUF_BANK_COUNT;
     if (readBuffer_(fp, more, audio_buf[next_bank])) {
       error("[MusicThread::main] Error fetching more from file %s!\n\r", name);
       goto end2;
     }
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-    read_profile_timer_.reset();
-#endif
     osSignalWait(DATA_NEEDED_SIGNAL, osWaitForever);
   }
-#if defined(LOAD_PROFILING) && LOAD_PROFILING
-  debug(
-    "[LOAD_PROFILING@MusicThread::main] Final read time average: (%lu, "
-    "%lfus)\n\r",
-    reads_,
-    double(read_sum_) / reads_);
-#endif
 
 end2:
   LPC_DAC->DACCTRL &= ~(0xC); // Stop running DAC.
