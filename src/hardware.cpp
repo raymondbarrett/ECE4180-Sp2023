@@ -2,7 +2,8 @@
 /// \date 2023-02-28
 /// \author mshakula (mshakula3@gatech.edu)
 ///
-/// \brief The definitions for global hardware declarations.
+/// \brief The definitions for global hardware declarations. This structure is
+/// handy, because it provides a spot for well-defined initialization code.
 
 #include "hardware.hpp"
 
@@ -82,6 +83,13 @@ DMA_()
   return dma;
 }
 
+rtos::Mutex&
+LCD_Mutex_()
+{
+  static rtos::Mutex mutex;
+  return mutex;
+}
+
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -95,3 +103,5 @@ uLCD_4DGL&       LCD         = LCD_();
 mbed::AnalogOut& Speaker     = Speaker_();
 MSCFileSystem&   USB         = USB_();
 MODDMA&          DMA         = DMA_();
+
+rtos::Mutex& LCD_Mutex = LCD_Mutex_();

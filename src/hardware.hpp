@@ -12,6 +12,7 @@
 #endif // __cplusplus
 
 #include <mbed.h>
+#include <rtos.h>
 
 #include <MODDMA.h>
 #include <MSCFileSystem.h>
@@ -43,6 +44,8 @@
 #define LCD_FONT_HEIGHT (8)
 #define LCD_MAX_TEXT_WIDTH (LCD_MAX_WIDTH / LCD_FONT_WIDTH)
 #define LCD_MAX_TEXT_HEIGHT (LCD_MAX_HEIGHT / LCD_FONT_HEIGHT)
+
+#define CCK_SPEED (96000000)
 
 /// \brief Nice wrapper for RGB LED.
 struct RGB
@@ -91,6 +94,8 @@ extern uLCD_4DGL&       LCD;
 extern mbed::AnalogOut& Speaker;
 extern MSCFileSystem&   USB;
 extern MODDMA&          DMA;
+
+extern rtos::Mutex& LCD_Mutex;
 
 // ===================== Detail Implementation =======================
 
