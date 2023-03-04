@@ -24,11 +24,10 @@
 // The stack sizes here are just approximate and just eyeballed /
 // trial-and-error to work. Still massive improvements over the 2048 default
 // size however.
-//
-// Intuition suggests that each stack frame is at least roughly 64 bytes.
-#define TH_LED_SSIZE (128)
-#define TH_TIMER_SSIZE ((1 << 10) * 3 / 2) // 1.5 << 10 == 1536
-#define TH_LCD_SSIZE ((1 << 10) * 3 / 2)
+#define kiB (1 << 10)
+#define TH_LED_SSIZE (kiB * 3 / 32)   // 0.09375kiB = 96bytes
+#define TH_TIMER_SSIZE (kiB * 11 / 8) // 1.375kiB = 1408bytes
+#define TH_LCD_SSIZE (kiB * 11 / 8)
 
 // ======================= Local Definitions =========================
 
@@ -149,7 +148,10 @@ main()
 
   // Realtime priority to make sure the audio is buffered properly.
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
-  rtos::Thread th_musicPlayer(osPriorityNormal, TH_MUSIC_PLAYER_SSIZE, nullptr);
+  rtos::Thread th_musicPlayer(
+    osPriorityRealtime, TH_MUSIC_PLAYER_SSIZE, nullptr);
+#else
+  osThreadSetPriority(osThreadGetId(), osPriorityRealtime);
 #endif
 
   debug("\n\n\rStarting program...\n\r");
@@ -157,7 +159,7 @@ main()
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
 
-  MusicThread::Params params = {"/usb/sample2.raw"};
+  MusicThread::Params params = {"/usb/sample4.pcm"};
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
   th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
   th_musicPlayer.join();

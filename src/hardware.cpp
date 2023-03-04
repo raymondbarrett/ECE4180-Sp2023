@@ -73,6 +73,10 @@ MSCFileSystem&
 USB_()
 {
   static MSCFileSystem usb("usb");
+  LPC_SC->PCLKSEL0 |= 0x1 << 6;  // PCLK_UART0 = CCLK
+  LPC_SC->PCLKSEL0 |= 0x1 << 8;  // PCLK_UART1 = CCLK
+  LPC_SC->PCLKSEL1 |= 0x1 << 16; // PCLK_UART2 = CCLK
+  LPC_SC->PCLKSEL1 |= 0x1 << 18; // PCLK_UART3 = CCLK
   return usb;
 }
 

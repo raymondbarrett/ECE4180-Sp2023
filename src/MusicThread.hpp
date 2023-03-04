@@ -20,7 +20,7 @@ namespace MusicThread {
 
 /// \brief Thread function to play an audio file from a file.
 ///
-/// \note Can only play 32-bit little endian PCM files.
+/// \note Can only play 8-bit PCM files.
 ///
 /// \param p a pointer to a `struct Params`.
 void
