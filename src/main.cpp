@@ -68,6 +68,8 @@ main()
       std::time_t            seconds = std::time(nullptr) - kSecondStart;
       char                   fmt_buf[LCD_MAX_TEXT_WIDTH * 2];
 
+      debug("TIMER\r\n");
+
       LCD.filled_rectangle(
         0, 0, LCD_MAX_WIDTH - 1, LCD_FONT_HEIGHT * 1 + 3, 0xffaaaa);
       LCD.textbackground_color(0xffaaaa);
@@ -86,21 +88,23 @@ main()
 
 } // namespace TimerThread
 
-
-
 namespace VideoThread {
+
 void
 main()
-{ 
-  LCD.cls();
-  do{
-    
+{
+  {
+    LockGuard<rtos::Mutex> _(LCD_Mutex);
+    LCD.background_color(0xffaaaa);
+    LCD.cls();
+  }
+  do {
     LCD.media_init();
     LCD.set_sector_address(0x00, 0x00);
-    LCD.display_video(0,16);
-    rtos::Thread::yield();
+    LCD.display_video(0, 16);
   } while (true);
 }
+
 } // namespace VideoThread
 
 /// \brief Die in main.
@@ -147,13 +151,13 @@ main()
   rtos::Thread th_led(osPriorityNormal, TH_LED_SSIZE, TH_LED_STACK);
 
   // Has to be normal prio to always continue while main thread waits.
-  rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, TH_TIMER_STACK);
+  rtos::Thread th_timer(osPriorityHigh, TH_TIMER_SSIZE, TH_TIMER_STACK);
 
-  //make video thread
-  //rtos::Thread th_video(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
+  // make video thread
+  rtos::Thread th_video(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Not sure about priority effect on this one currently.
-  //rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
+  // rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Realtime priority to make sure the audio is buffered properly.
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
@@ -167,22 +171,22 @@ main()
 
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
-  //th_video.start(VideoThread::main);
-/*
-  // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
-  MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
-#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
-  th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
-  th_musicPlayer.join();
-#else
-  MusicThread::main(&params);
-#endif
-*/
+  th_video.start(VideoThread::main);
+  /*
+    // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
+    MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
+  #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
+    th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
+    th_musicPlayer.join();
+  #else
+    MusicThread::main(&params);
+  #endif
+  */
   wait(20);
   // End program.
   debug("Finished...\r\n");
   th_timer.terminate();
   th_led.terminate();
-  //th_video.terminate();
+  th_video.terminate();
   die();
 }
