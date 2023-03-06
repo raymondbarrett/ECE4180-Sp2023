@@ -90,19 +90,49 @@ main()
 
 namespace VideoThread {
 
-void
-main()
+enum Type
 {
-  {
-    LockGuard<rtos::Mutex> _(LCD_Mutex);
-    LCD.background_color(0xffaaaa);
-    LCD.cls();
+  Face,
+  LightningVideo,
+};
+
+struct Params
+{
+  Type mode;
+};
+
+void
+main(const void* p)
+{
+  const Params* params = static_cast<const Params*>(p);
+
+  switch (params->mode) {
+    case LightningVideo: {
+      {
+        LockGuard<rtos::Mutex> _(LCD_Mutex);
+        LCD.background_color(0x000000);
+        LCD.cls();
+        LCD.media_init();
+        LCD.set_sector_address(0x00, 0x00);
+        LCD.display_video(0, 0);
+      }
+      while (true)
+        osThreadYield();
+    } break;
+
+    case Face: {
+      {
+        LockGuard<rtos::Mutex> _(LCD_Mutex);
+        LCD.background_color(0xffaaaa);
+        LCD.cls();
+        LCD.media_init();
+        LCD.set_sector_address(0x10, 0x00);
+        LCD.display_image(0, 16);
+      }
+      while (true)
+        osThreadYield();
+    } break;
   }
-  do {
-    LCD.media_init();
-    LCD.set_sector_address(0x00, 0x00);
-    LCD.display_video(0, 16);
-  } while (true);
 }
 
 } // namespace VideoThread
@@ -169,9 +199,11 @@ main()
 
   debug("\n\r\nStarting program...\r\n");
 
+  VideoThread::Params v_params = {VideoThread::Face};
+
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
-  th_video.start(VideoThread::main);
+  th_video.start(mbed::callback(VideoThread::main, &v_params));
   /*
     // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
     MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
