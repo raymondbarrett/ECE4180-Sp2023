@@ -114,8 +114,19 @@ main()
     rtos::Thread::wait(static_cast<int>(200 * randf()));
   } while (true);
 }
-
 } // namespace LCDThread
+
+namespace VideoThread {
+void
+main()
+{
+  do{
+    LCD.media_init();
+    LCD.set_sector_address(0x0000, 0x0001);
+    LCD.display_video(0,16);
+  } while (true);
+}
+} // namespace VideoThread
 
 /// \brief Die in main.
 void __attribute__((noreturn)) die()
