@@ -12,15 +12,16 @@
 #error "MusicThread.hpp is a cxx-only header."
 #endif // __cplusplus
 
-#define TH_MUSIC_PLAYER_SSIZE (2048)
-
 // ======================= Public Interface ==========================
 
 namespace MusicThread {
 
 /// \brief Thread function to play an audio file from a file.
 ///
-/// \note Can only play 8-bit PCM files.
+/// \note As the sampling frequency of the file increases, the time drift of the
+/// music player is delayed. It will play notes at their correct frequencies and
+/// everything (calibrated to do so), however it will have significant slowdown
+/// due to "crunchiness".
 ///
 /// \param p a pointer to a `struct Params`.
 void
@@ -31,6 +32,10 @@ struct Params
 {
   /// \brief The file name on an accessible mounted location.
   const char* file_name;
+
+  /// \brief The seeking speed while playing the file.
+  /// \note Faster seeking may introduce "crunchiness".
+  double speed;
 };
 
 } // namespace MusicThread

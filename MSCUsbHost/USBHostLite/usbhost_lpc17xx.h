@@ -201,7 +201,7 @@ typedef struct hcTd
   volatile USB_INT32U Control; /* Transfer descriptor control */
   volatile USB_INT32U
     CurrBufPtr; /* Physical address of current buffer pointer               */
-  volatile USB_INT32U Next;   /* Physical pointer to next Transfer Descriptor   */
+  volatile USB_INT32U Next; /* Physical pointer to next Transfer Descriptor   */
   volatile USB_INT32U BufEnd; /* Physical address of end of buffer */
 } HCTD;
 

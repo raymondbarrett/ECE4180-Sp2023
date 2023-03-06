@@ -124,10 +124,10 @@ MS_ParseConfiguration(void)
     }
   }
   if (ms_int_found) {
-    PRINT_Log("Mass Storage device connected\n\r");
+    PRINT_Log("Mass Storage device connected\r\n");
     return (OK);
   } else {
-    PRINT_Log("Not a Mass Storage device\n\r");
+    PRINT_Log("Not a Mass Storage device\r\n");
     return (ERR_NO_MS_INTERFACE);
   }
 }

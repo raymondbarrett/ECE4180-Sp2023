@@ -17,7 +17,10 @@
 #include "hardware.hpp"
 #include "util.hpp"
 
-#define MUSIC_THREAD_STANDALONE 0
+// Prefer to keep threads separate, and also statically allocate their frames,
+// so that the compiler can know ahead of time if we use too much memory.
+#define MUSIC_THREAD_STANDALONE 1
+#define STATIC_THREAD_STACKS 1
 
 // Fine-grained control of stack sizes, to get more from the system.
 //
@@ -25,9 +28,10 @@
 // trial-and-error to work. Still massive improvements over the 2048 default
 // size however.
 #define kiB (1 << 10)
-#define TH_LED_SSIZE (kiB * 3 / 32)   // 0.09375kiB = 96bytes
+#define TH_LED_SSIZE (kiB * 1 / 4)    // 0.250kiB = 256bytes
 #define TH_TIMER_SSIZE (kiB * 11 / 8) // 1.375kiB = 1408bytes
 #define TH_LCD_SSIZE (kiB * 11 / 8)
+#define TH_MUSIC_SSIZE (kiB * 2)
 
 // ======================= Local Definitions =========================
 
@@ -127,6 +131,22 @@ void __attribute__((noreturn)) die()
   } while (true);
 }
 
+#if defined(STATIC_THREAD_STACKS) && STATIC_THREAD_STACKS
+#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
+unsigned char TH_MUSIC_STACK[TH_MUSIC_SSIZE];
+#endif
+unsigned char TH_LED_STACK[TH_LED_SSIZE];
+unsigned char TH_LCD_STACK[TH_LCD_SSIZE];
+unsigned char TH_TIMER_STACK[TH_TIMER_SSIZE];
+#else
+#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
+#define TH_MUSIC_STACK nullptr
+#endif
+#define TH_LED_STACK nullptr
+#define TH_LCD_STACK nullptr
+#define TH_TIMER_STACK nullptr
+#endif
+
 } // namespace
 
 // ====================== Global Definitions =========================
@@ -138,28 +158,29 @@ main()
   // Use advanced thread priority/stack size creation for better control.
 
   // Very low prio since its very low resrouce + lots of waiting.
-  rtos::Thread th_led(osPriorityNormal, TH_LED_SSIZE, nullptr);
+  rtos::Thread th_led(osPriorityNormal, TH_LED_SSIZE, TH_LED_STACK);
 
   // Has to be normal prio to always continue while main thread waits.
-  rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, nullptr);
+  rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, TH_TIMER_STACK);
 
   // Not sure about priority effect on this one currently.
-  rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, nullptr);
+  // rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Realtime priority to make sure the audio is buffered properly.
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
   rtos::Thread th_musicPlayer(
-    osPriorityRealtime, TH_MUSIC_PLAYER_SSIZE, nullptr);
+    osPriorityRealtime, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
 #else
   osThreadSetPriority(osThreadGetId(), osPriorityRealtime);
 #endif
 
-  debug("\n\n\rStarting program...\n\r");
+  debug("\n\r\nStarting program...\r\n");
 
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
 
-  MusicThread::Params params = {"/usb/tetris-hq.pcm"};
+  // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
+  MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
   th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
   th_musicPlayer.join();
@@ -168,9 +189,8 @@ main()
 #endif
 
   // End program.
-  debug("Finished...\n\r");
+  debug("Finished...\r\n");
   th_timer.terminate();
-  // th_lcd.terminate();
   th_led.terminate();
   die();
 }

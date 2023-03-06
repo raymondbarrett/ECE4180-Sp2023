@@ -112,7 +112,7 @@ Host_DelayUS(USB_INT32U delay)
 void
 Host_Init(void)
 {
-  PRINT_Log("In Host_Init\n\r");
+  PRINT_Log("In Host_Init\r\n");
   NVIC_DisableIRQ(USB_IRQn); /* Disable the USB interrupt source           */
 
   // turn on power for USB
@@ -150,7 +150,7 @@ Host_Init(void)
   LPC_PINCON->PINSEL1 &= ~((3 << 26) | (3 << 28));
   LPC_PINCON->PINSEL1 |= ((1 << 26) | (1 << 28)); // 0x14000000
 
-  PRINT_Log("Initializing Host Stack\n\r");
+  PRINT_Log("Initializing Host Stack\r\n");
 
   Hcca      = (volatile HCCA*)(HostBuf + 0x000);
   TDHead    = (volatile HCTD*)(HostBuf + 0x100);
@@ -178,7 +178,7 @@ Host_Init(void)
   LPC_USB->HcFmInterval =
     DEFAULT_FMINTERVAL; /* Write Fm Interval and Largest Data Packet Counter */
 
-  PRINT_Log("Initializing Host Stack\n\r");
+  PRINT_Log("Initializing Host Stack\r\n");
 
   /* Put HC in operational state                */
   LPC_USB->HcControl =
@@ -195,7 +195,7 @@ Host_Init(void)
   NVIC_SetPriority(USB_IRQn, 0); /* highest priority */
   /* Enable the USB Interrupt */
   NVIC_EnableIRQ(USB_IRQn);
-  PRINT_Log("Host Initialized\n\r");
+  PRINT_Log("Host Initialized\r\n");
 }
 
 /*
@@ -244,7 +244,7 @@ USB_IRQHandler(void) __irq
               HOST_RhscIntr        = 1;
               gUSBConnected        = 1;
             } else
-              PRINT_Log("Spurious status change (connected)?\n\r");
+              PRINT_Log("Spurious status change (connected)?\r\n");
           } else {
             if (gUSBConnected) {
               LPC_USB->HcInterruptEnable =
@@ -252,7 +252,7 @@ USB_IRQHandler(void) __irq
               HOST_RhscIntr = 0;
               gUSBConnected = 0;
             } else
-              PRINT_Log("Spurious status change (disconnected)?\n\r");
+              PRINT_Log("Spurious status change (disconnected)?\r\n");
           }
         }
         LPC_USB->HcRhPortStatus1 = OR_RH_PORT_CSC;
@@ -352,7 +352,7 @@ Host_EnumDev(void)
 {
   USB_INT32S rc;
 
-  PRINT_Log("Connect a Mass Storage device\n\r");
+  PRINT_Log("Connect a Mass Storage device\r\n");
   while (!HOST_RhscIntr)
     __WFI();
   Host_DelayMS(100); /* USB 2.0 spec says atleast 50ms delay beore port reset */

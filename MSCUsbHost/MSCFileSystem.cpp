@@ -24,40 +24,40 @@ print_inquiry(USB_INT08U* inqReply)
 {
   // see USB Mass Storage Class – UFI Command Specification,
   // 4.2 INQUIRY Command
-  printf("Inquiry reply:\n\r");
+  printf("Inquiry reply:\r\n");
   uint8_t tmp = inqReply[0] & 0x1F;
-  printf("Peripheral device type: %02Xh\n\r", tmp);
+  printf("Peripheral device type: %02Xh\r\n", tmp);
   if (tmp == 0)
-    printf("\t- Direct access (floppy)\n\r");
+    printf("\t- Direct access (floppy)\r\n");
   else if (tmp == 0x1F)
-    printf("\t- none (no FDD connected)\n\r");
+    printf("\t- none (no FDD connected)\r\n");
   else
-    printf("\t- unknown type\n\r");
+    printf("\t- unknown type\r\n");
   tmp = inqReply[1] >> 7;
-  printf("Removable Media Bit: %d\n\r", tmp);
+  printf("Removable Media Bit: %d\r\n", tmp);
   tmp = inqReply[2] & 3;
-  printf("ANSI Version: %02Xh\n\r", tmp);
+  printf("ANSI Version: %02Xh\r\n", tmp);
   if (tmp != 0)
-    printf("\t- warning! must be 0\n\r");
+    printf("\t- warning! must be 0\r\n");
   tmp = (inqReply[2] >> 3) & 3;
-  printf("ECMA Version: %02Xh\n\r", tmp);
+  printf("ECMA Version: %02Xh\r\n", tmp);
   if (tmp != 0)
-    printf("\t- warning! should be 0\n\r");
+    printf("\t- warning! should be 0\r\n");
   tmp = inqReply[2] >> 6;
-  printf("ISO Version: %02Xh\n\r", tmp);
+  printf("ISO Version: %02Xh\r\n", tmp);
   if (tmp != 0)
-    printf("\t- warning! should be 0\n\r");
+    printf("\t- warning! should be 0\r\n");
   tmp = inqReply[3] & 0xF;
-  printf("Response Data Format: %02Xh\n\r", tmp);
+  printf("Response Data Format: %02Xh\r\n", tmp);
   if (tmp != 1)
-    printf("\t- warning! should be 1\n\r");
+    printf("\t- warning! should be 1\r\n");
   tmp = inqReply[4];
-  printf("Additional length: %02Xh\n\r", tmp);
+  printf("Additional length: %02Xh\r\n", tmp);
   if (tmp != 0x1F)
-    printf("\t- warning! should be 1Fh\n\r");
-  printf("Vendor Information: '%.8s'\n\r", &inqReply[8]);
-  printf("Product Identification: '%.16s'\n\r", &inqReply[16]);
-  printf("Product Revision: '%.4s'\n\r", &inqReply[32]);
+    printf("\t- warning! should be 1Fh\r\n");
+  printf("Vendor Information: '%.8s'\r\n", &inqReply[8]);
+  printf("Product Identification: '%.16s'\r\n", &inqReply[16]);
+  printf("Product Revision: '%.4s'\r\n", &inqReply[32]);
 }
 
 int
@@ -70,18 +70,18 @@ MSCFileSystem::initialise_msc()
   Host_Init();         /* Initialize the  host controller         */
   rc = Host_EnumDev(); /* Enumerate the device connected */
   if (rc != OK) {
-    fprintf(stderr, "Could not enumerate device: %d\n\r", rc);
+    fprintf(stderr, "Could not enumerate device: %d\r\n", rc);
     return rc;
   }
 
   /* Initialize the mass storage and scsi interfaces */
   rc = MS_Init(&_blkSize, &_numBlks, inquiryResult);
   if (rc != OK) {
-    fprintf(stderr, "Could not initialize mass storage interface: %d\n\r", rc);
+    fprintf(stderr, "Could not initialize mass storage interface: %d\r\n", rc);
     return rc;
   }
   printf(
-    "Successfully initialized mass storage interface; %d blocks of size %d\n\r",
+    "Successfully initialized mass storage interface; %d blocks of size %d\r\n",
     _numBlks,
     _blkSize);
   print_inquiry(inquiryResult);

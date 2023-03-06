@@ -45,7 +45,8 @@
 #define LCD_MAX_TEXT_WIDTH (LCD_MAX_WIDTH / LCD_FONT_WIDTH)
 #define LCD_MAX_TEXT_HEIGHT (LCD_MAX_HEIGHT / LCD_FONT_HEIGHT)
 
-#define CCK_SPEED (96000000)
+// Experimentally found. from nominal 96Mhz.
+#define CCK_SPEED (95300000)
 
 /// \brief Nice wrapper for RGB LED.
 struct RGB
