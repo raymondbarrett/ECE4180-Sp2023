@@ -119,11 +119,14 @@ main()
 namespace VideoThread {
 void
 main()
-{
+{ 
+  LCD.cls();
   do{
+    
     LCD.media_init();
-    LCD.set_sector_address(0x0000, 0x0001);
+    LCD.set_sector_address(0x00, 0x00);
     LCD.display_video(0,16);
+    rtos::Thread::yield();
   } while (true);
 }
 } // namespace VideoThread
@@ -173,6 +176,9 @@ main()
 
   // Has to be normal prio to always continue while main thread waits.
   rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, TH_TIMER_STACK);
+  
+  //make video thread
+  rtos::Thread th_video(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Not sure about priority effect on this one currently.
   // rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
@@ -189,6 +195,7 @@ main()
 
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
+  th_video_thread.start(VideoThread::main);
 
   // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
   MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
@@ -203,5 +210,6 @@ main()
   debug("Finished...\r\n");
   th_timer.terminate();
   th_led.terminate();
+  th_video_thread.terminate();
   die();
 }
