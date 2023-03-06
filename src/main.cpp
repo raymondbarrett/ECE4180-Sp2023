@@ -14,13 +14,14 @@
 #include <uLCD_4DGL.h>
 
 #include "MusicThread.hpp"
+#include "cmsis_os.h"
 #include "hardware.hpp"
 #include "util.hpp"
 
 // Prefer to keep threads separate, and also statically allocate their frames,
 // so that the compiler can know ahead of time if we use too much memory.
 #define MUSIC_THREAD_STANDALONE 1
-#define STATIC_THREAD_STACKS 1
+#define STATIC_THREAD_STACKS 0
 
 // Fine-grained control of stack sizes, to get more from the system.
 //
@@ -85,36 +86,7 @@ main()
 
 } // namespace TimerThread
 
-namespace LCDThread {
 
-/// \brief The LCD lightning effect function.
-void
-main()
-{
-  do {
-    {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      LCD.filled_rectangle(
-        0,
-        LCD_FONT_HEIGHT + 3,
-        LCD_MAX_WIDTH - 1,
-        LCD_MAX_HEIGHT - 1,
-        0xffff00);
-    }
-    rtos::Thread::wait(static_cast<int>(3000 * pow(randf(), 3)));
-    {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      LCD.filled_rectangle(
-        0,
-        LCD_FONT_HEIGHT + 3,
-        LCD_MAX_WIDTH - 1,
-        LCD_MAX_HEIGHT - 1,
-        0x000000);
-    }
-    rtos::Thread::wait(static_cast<int>(200 * randf()));
-  } while (true);
-}
-} // namespace LCDThread
 
 namespace VideoThread {
 void
@@ -176,12 +148,12 @@ main()
 
   // Has to be normal prio to always continue while main thread waits.
   rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, TH_TIMER_STACK);
-  
+
   //make video thread
-  rtos::Thread th_video(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
+  //rtos::Thread th_video(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Not sure about priority effect on this one currently.
-  // rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
+  //rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
 
   // Realtime priority to make sure the audio is buffered properly.
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
@@ -195,8 +167,8 @@ main()
 
   th_led.start(LEDThread::main);
   th_timer.start(TimerThread::main);
-  th_video_thread.start(VideoThread::main);
-
+  //th_video.start(VideoThread::main);
+/*
   // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
   MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
 #if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
@@ -205,11 +177,12 @@ main()
 #else
   MusicThread::main(&params);
 #endif
-
+*/
+  wait(20);
   // End program.
   debug("Finished...\r\n");
   th_timer.terminate();
   th_led.terminate();
-  th_video_thread.terminate();
+  //th_video.terminate();
   die();
 }
