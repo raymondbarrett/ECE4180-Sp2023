@@ -1,6 +1,6 @@
 /// \file MusicThread.cpp
 /// \date 2023-03-04
-/// \author mshakula (mshakula3@gatech.edu)
+/// \author mshakula (matvey@gatech.edu)
 ///
 /// \brief The MusicThread implementation.
 
@@ -264,14 +264,10 @@ readBuffer_(FileInfo_& file_info, bool& more, std::uint32_t* buffer)
 
 // ====================== Global Definitions =========================
 
-namespace MusicThread {
-
 void
-main(const void* p)
+MusicThread::operator()()
 {
   static const int kClockFreq = configDACClock_();
-
-  const Params* const params = static_cast<const Params*>(p);
 
   static FileInfo_ file_info; // allocate decoding structs in static memory.
   bool             more = true;
@@ -282,7 +278,7 @@ main(const void* p)
   ErrorCallback_ callback_e;
 
   // Open file and get its data.
-  if (!initFile_(params->file_name, file_info)) {
+  if (!initFile_(this->file_name_, file_info)) {
     error("[MusicThread::main] Cannot open file %s!\r\n", file_info.name);
     return;
   }
@@ -322,7 +318,7 @@ main(const void* p)
   // Configure and start DAC. Assume 24kHz for PCM (seems to work well @ this
   // speed).
   LPC_DAC->DACCNTVAL = static_cast<std::uint16_t>(
-    kClockFreq / params->speed / 2 / (file_info.rate ? file_info.rate : 24000));
+    kClockFreq / this->speed_ / 2 / (file_info.rate ? file_info.rate : 24000));
   LPC_DAC->DACCTRL |= 0xC; // Start running DAC.
 
   debug("[MusicThread::main] DAC enabled.\r\n");
@@ -354,8 +350,6 @@ end2:
 end:
   deinitFile_(file_info);
 }
-
-} // namespace MusicThread
 
 // Include minimp3 implementation
 #if !defined(DISABLE_MP3) || !DISABLE_MP3

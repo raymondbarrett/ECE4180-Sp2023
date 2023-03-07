@@ -1,6 +1,6 @@
 /// \file hardware.hpp
 /// \date 2023-02-28
-/// \author mshakula (mshakula3@gatech.edu)
+/// \author mshakula (matvey@gatech.edu)
 ///
 /// \brief The hardware definitions
 
@@ -92,7 +92,7 @@ extern struct Switch&   Switch;
 extern mbed::Serial&    BTInput;
 extern mbed::Serial&    PC;
 extern uLCD_4DGL&       LCD;
-extern mbed::AnalogOut& Speaker;
+extern mbed::AnalogOut& Speaker; // neccessary for dma to work.
 extern MSCFileSystem&   USB;
 extern MODDMA&          DMA;
 

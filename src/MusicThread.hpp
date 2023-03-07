@@ -12,33 +12,40 @@
 #error "MusicThread.hpp is a cxx-only header."
 #endif // __cplusplus
 
+#include "ThreadHelper.hpp"
+
 // ======================= Public Interface ==========================
 
-namespace MusicThread {
-
-/// \brief Thread function to play an audio file from a file.
+/// \brief Class encapsulating an audio playing function.
 ///
 /// \note As the sampling frequency of the file increases, the time drift of the
 /// music player is delayed. It will play notes at their correct frequencies and
 /// everything (calibrated to do so), however it will have significant slowdown
 /// due to "crunchiness".
-///
-/// \param p a pointer to a `struct Params`.
-void
-main(const void* parameters);
-
-/// \brief The parameters to pass into this thread's main function.
-struct Params
+class MusicThread : public ThreadHelper<MusicThread>
 {
-  /// \brief The file name on an accessible mounted location.
-  const char* file_name;
+ public:
+  /// \brief Interface to the mbed thread mechanic.
+  static void main(void* p) { static_cast<MusicThread*>(p)->operator()(); }
 
-  /// \brief The seeking speed while playing the file.
-  /// \note Faster seeking may introduce "crunchiness".
-  double speed;
+  /// \brief The constructor.
+  ///
+  /// \param file_name The file name on an accessible mounted location.
+  ///
+  /// \param initial_speed The initial speed at which to play the music file.
+  /// Faster seeking may introduce "crunchiness".
+  MusicThread(const char* file_name, double initial_speed) :
+      file_name_(file_name), speed_(initial_speed)
+  {
+  }
+
+  /// \brief Run the actual thread.
+  void operator()();
+
+ private:
+  const char* file_name_;
+  double      speed_;
 };
-
-} // namespace MusicThread
 
 // ===================== Detail Implementation =======================
 

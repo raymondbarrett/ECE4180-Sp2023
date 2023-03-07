@@ -1,6 +1,6 @@
 /// \file hardware.cpp
 /// \date 2023-02-28
-/// \author mshakula (mshakula3@gatech.edu)
+/// \author mshakula (matvey@gatech.edu)
 ///
 /// \brief The definitions for global hardware declarations. This structure is
 /// handy, because it provides a spot for well-defined initialization code.

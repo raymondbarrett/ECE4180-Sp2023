@@ -1,6 +1,6 @@
 /// \file util.hpp
 /// \date 2023-02-28
-/// \author mshakula (mshakula3@gatech.edu)
+/// \author mshakula (matvey@gatech.edu)
 ///
 /// \brief Generic helper functions for use across project.
 

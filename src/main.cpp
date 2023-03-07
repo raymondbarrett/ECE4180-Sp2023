@@ -1,6 +1,6 @@
 /// \file main.cpp
 /// \date 2023-02-27
-/// \author mshakula (mshakula3@gatech.edu)
+/// \author mshakula (matvey@gatech.edu)
 ///
 /// \brief The main file.
 
@@ -19,8 +19,7 @@
 
 // Prefer to keep threads separate, and also statically allocate their frames,
 // so that the compiler can know ahead of time if we use too much memory.
-#define MUSIC_THREAD_STANDALONE 1
-#define STATIC_THREAD_STACKS 1
+#define STATIC_THREAD_STACKS 0
 
 // Fine-grained control of stack sizes, to get more from the system.
 //
@@ -32,6 +31,11 @@
 #define TH_TIMER_SSIZE (kiB * 11 / 8) // 1.375kiB = 1408bytes
 #define TH_LCD_SSIZE (kiB * 11 / 8)
 #define TH_MUSIC_SSIZE (kiB * 2)
+
+#define TH_LED_PRIO (osPriorityNormal)
+#define TH_TIMER_PRIO (osPriorityNormal)
+#define TH_LCD_PRIO (osPriorityNormal)
+#define TH_MUSIC_PRIO (osPriorityRealtime)
 
 // ======================= Local Definitions =========================
 
@@ -132,16 +136,12 @@ void __attribute__((noreturn)) die()
 }
 
 #if defined(STATIC_THREAD_STACKS) && STATIC_THREAD_STACKS
-#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
 unsigned char TH_MUSIC_STACK[TH_MUSIC_SSIZE];
-#endif
 unsigned char TH_LED_STACK[TH_LED_SSIZE];
 unsigned char TH_LCD_STACK[TH_LCD_SSIZE];
 unsigned char TH_TIMER_STACK[TH_TIMER_SSIZE];
 #else
-#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
 #define TH_MUSIC_STACK nullptr
-#endif
 #define TH_LED_STACK nullptr
 #define TH_LCD_STACK nullptr
 #define TH_TIMER_STACK nullptr
@@ -155,42 +155,81 @@ unsigned char TH_TIMER_STACK[TH_TIMER_SSIZE];
 int
 main()
 {
-  // Use advanced thread priority/stack size creation for better control.
+  printf("\n\r\nStarting program...\r\n");
 
-  // Very low prio since its very low resrouce + lots of waiting.
-  rtos::Thread th_led(osPriorityNormal, TH_LED_SSIZE, TH_LED_STACK);
-
-  // Has to be normal prio to always continue while main thread waits.
-  rtos::Thread th_timer(osPriorityNormal, TH_TIMER_SSIZE, TH_TIMER_STACK);
-
-  // Not sure about priority effect on this one currently.
-  // rtos::Thread th_lcd(osPriorityNormal, TH_LCD_SSIZE, TH_LCD_STACK);
-
-  // Realtime priority to make sure the audio is buffered properly.
-#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
-  rtos::Thread th_musicPlayer(
-    osPriorityRealtime, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
-#else
-  osThreadSetPriority(osThreadGetId(), osPriorityRealtime);
-#endif
-
-  debug("\n\r\nStarting program...\r\n");
-
-  th_led.start(LEDThread::main);
+  rtos::Thread th_timer(TH_TIMER_PRIO, TH_TIMER_SSIZE, TH_TIMER_STACK);
   th_timer.start(TimerThread::main);
+  do {
+    int mode = 0;
 
-  // MusicThread::Params params = {"/usb/wavves/tetris-48k.pcm", 4.0};
-  MusicThread::Params params = {"/usb/wavves/jpn-amend.mp3", 1};
-#if defined(MUSIC_THREAD_STANDALONE) && MUSIC_THREAD_STANDALONE
-  th_musicPlayer.start(mbed::callback(MusicThread::main, &params));
-  th_musicPlayer.join();
-#else
-  MusicThread::main(&params);
-#endif
+    if (BTInput.readable()) {
+      if (BTInput.getc() == '!') {
+        if (BTInput.getc() == 'B') {          // button data
+          char bnum = BTInput.getc();         // button number
+          if ((bnum >= '1') && (bnum <= '4')) // is a number button 1..4
+            mode = BTInput.getc() - '0';      // turn on/off that num LED
+        }
+      }
+    }
 
+    if (Switch.get_up()) {
+      mode = 1;
+    } else if (Switch.get_down()) {
+      mode = 2;
+    } else if (Switch.get_left()) {
+      mode = 3;
+    } else if (Switch.get_right()) {
+      mode = 4;
+    } else if (Switch.get_center()) {
+      mode = 5;
+    }
+
+    switch (mode) {
+      case 0:
+        break;
+
+      case 1: {
+        rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
+        rtos::Thread th_led(TH_LED_PRIO, TH_LED_SSIZE, TH_LED_STACK);
+
+        MusicThread music_player("/usb/__LOAN_WAVES__/thunder.pcm", 0.8);
+
+        music_player.startIn(th_music);
+        th_led.start(LEDThread::main);
+
+        th_music.join();
+        th_led.terminate();
+      } break;
+
+      case 3: {
+        rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
+
+        MusicThread music_player(
+          "/usb/__LOAN_WAVES__/all-the-things-she-said.pcm", 1.0);
+
+        music_player.startIn(th_music);
+
+        th_music.join();
+      } break;
+
+      case 4: {
+        rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
+
+        MusicThread music_player("/usb/__LOAN_WAVES__/tetris-48k.pcm", 12);
+
+        music_player.startIn(th_music);
+
+        th_music.join();
+      } break;
+
+      default:
+        goto end;
+    }
+  } while (true);
+
+end:
   // End program.
-  debug("Finished...\r\n");
   th_timer.terminate();
-  th_led.terminate();
+  printf("Death...\r\n");
   die();
 }
