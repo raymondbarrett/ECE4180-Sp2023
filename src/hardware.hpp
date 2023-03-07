@@ -24,11 +24,11 @@
 #define PIN_G p23
 #define PIN_B p22
 #define PIN_SPEAK p18
-#define PIN_SW_RIGHT p29 // SWAP THESE FOR DIRECTINOS.
-#define PIN_SW_DOWN p28
-#define PIN_SW_LEFT p27
-#define PIN_SW_CENTER p26
-#define PIN_SW_UP p25
+#define PIN_SW_RIGHT p11 // SWAP THESE FOR DIRECTINOS.
+#define PIN_SW_DOWN p8
+#define PIN_SW_LEFT p7
+#define PIN_SW_CENTER p6
+#define PIN_SW_UP p5
 #define PIN_LCD_RES p30
 #define PIN_LCD_RX p14
 #define PIN_LCD_TX p13
