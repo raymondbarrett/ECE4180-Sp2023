@@ -2,7 +2,8 @@
 /// \date 2023-03-04
 /// \author mshakula (matvey@gatech.edu)
 ///
-/// \brief The MusicThread implementation.
+/// \brief The MusicThread implementation. In separate file because it is quite
+/// complex.
 
 // Save static code size and ram by disabling MP3 support.
 #define DISABLE_MP3 1
@@ -279,19 +280,19 @@ MusicThread::operator()()
 
   // Open file and get its data.
   if (!initFile_(this->file_name_, file_info)) {
-    error("[MusicThread::main] Cannot open file %s!\r\n", file_info.name);
+    error("[MusicThread] Cannot open file %s!\r\n", file_info.name);
     return;
   }
 
   // Fill initial two buffer banks.
   for (int i = 0; i < AUDIO_BUF_BANK_COUNT; ++i) {
     if (readBuffer_(file_info, more, audio_buf[i])) {
-      error("[MusicThread::main] Error reading file %s!\r\n", file_info.name);
+      error("[MusicThread] Error reading file %s!\r\n", file_info.name);
       goto end;
     }
   }
 
-  debug("[MusicThread::main] Loaded initial banks.\r\n");
+  debug("[MusicThread] Loaded initial banks.\r\n");
 
   // Configure Banks
   for (int i = 0; i < AUDIO_BUF_BANK_COUNT; ++i) {
@@ -307,11 +308,11 @@ MusicThread::operator()()
   bank_conf[0].channelNum(MODDMA::Channel_0);
   bank_conf[1].channelNum(MODDMA::Channel_1);
 
-  debug("[MusicThread::main] Configured initial banks.\r\n");
+  debug("[MusicThread] Configured initial banks.\r\n");
 
   // Start DMA to DAC.
   if (!DMA.Setup(&bank_conf[0])) {
-    error("[MusicThread::main] Error in initial DMA Setup()!\r\n");
+    error("[MusicThread] Error in initial DMA Setup()!\r\n");
     goto end;
   }
 
@@ -321,28 +322,28 @@ MusicThread::operator()()
     kClockFreq / this->speed_ / 2 / (file_info.rate ? file_info.rate : 24000));
   LPC_DAC->DACCTRL |= 0xC; // Start running DAC.
 
-  debug("[MusicThread::main] DAC enabled.\r\n");
+  debug("[MusicThread] DAC enabled.\r\n");
 
   DMA.Enable(&bank_conf[0]);
 
-  debug("[MusicThread::main] DMA enabled.\r\n");
+  debug("[MusicThread] DMA enabled.\r\n");
 
   // Start audio buffering loop.
-  debug("[MusicThread::main] Starting audio buffering idle loop.\r\n");
+  debug("[MusicThread] Starting audio buffering idle loop.\r\n");
   osSignalWait(DATA_NEEDED_SIGNAL, osWaitForever);
   while (more) {
-    // debug("[MusicThread::main] Fetching more from file...");
+    // debug("[MusicThread] Fetching more from file...");
     int next_bank =
       (curr_bank - 1 + AUDIO_BUF_BANK_COUNT) % AUDIO_BUF_BANK_COUNT;
     if (readBuffer_(file_info, more, audio_buf[next_bank])) {
       error(
-        "[MusicThread::main] Error fetching more from file %s!\r\n",
-        file_info.name);
+        "[MusicThread] Error fetching more from file %s!\r\n", file_info.name);
       goto end2;
     }
     // debug(" done.\r\n");
     osSignalWait(DATA_NEEDED_SIGNAL, osWaitForever);
   }
+  debug("[MusicThread] Finished playing audio.\r\n");
 
 end2:
   LPC_DAC->DACCTRL &= ~(0xC); // Stop running DAC.

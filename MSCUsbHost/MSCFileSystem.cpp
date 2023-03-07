@@ -11,6 +11,8 @@
  * FAT library
  */
 
+#define PRINT_INFO 0
+
 #include "MSCFileSystem.h"
 
 #include "usbhost_inc.h"
@@ -22,6 +24,7 @@ MSCFileSystem::MSCFileSystem(const char* name) : FATFileSystem(name) {}
 void
 print_inquiry(USB_INT08U* inqReply)
 {
+#if PRINT_INFO
   // see USB Mass Storage Class – UFI Command Specification,
   // 4.2 INQUIRY Command
   printf("Inquiry reply:\r\n");
@@ -58,6 +61,9 @@ print_inquiry(USB_INT08U* inqReply)
   printf("Vendor Information: '%.8s'\r\n", &inqReply[8]);
   printf("Product Identification: '%.16s'\r\n", &inqReply[16]);
   printf("Product Revision: '%.4s'\r\n", &inqReply[32]);
+#else
+  return;
+#endif
 }
 
 int
@@ -80,10 +86,12 @@ MSCFileSystem::initialise_msc()
     fprintf(stderr, "Could not initialize mass storage interface: %d\r\n", rc);
     return rc;
   }
+#if PRINT_INFO
   printf(
     "Successfully initialized mass storage interface; %d blocks of size %d\r\n",
     _numBlks,
     _blkSize);
+#endif
   print_inquiry(inquiryResult);
 
   // FATFileSystem supports only 512-byte blocks

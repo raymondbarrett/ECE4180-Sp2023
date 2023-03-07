@@ -5,14 +5,14 @@
 /// \brief THe music playing thread broken out into a different file to
 /// declutter main.
 
-#ifndef MUSIC_PLAYER_THREAD_HPP
-#define MUSIC_PLAYER_THREAD_HPP
+#ifndef MUSIC_THREAD_HPP
+#define MUSIC_THREAD_HPP
 
 #ifndef __cplusplus
 #error "MusicThread.hpp is a cxx-only header."
 #endif // __cplusplus
 
-#include "ThreadHelper.hpp"
+#include "ThreadCommon.hpp"
 
 // ======================= Public Interface ==========================
 
@@ -25,15 +25,13 @@
 class MusicThread : public ThreadHelper<MusicThread>
 {
  public:
-  /// \brief Interface to the mbed thread mechanic.
-  static void main(void* p) { static_cast<MusicThread*>(p)->operator()(); }
-
   /// \brief The constructor.
   ///
   /// \param file_name The file name on an accessible mounted location.
   ///
   /// \param initial_speed The initial speed at which to play the music file.
-  /// Faster seeking may introduce "crunchiness".
+  /// Faster seeking may introduce "crunchiness". Keep it within [0, 2] to be
+  /// safe usually for 24kHz pcm.
   MusicThread(const char* file_name, double initial_speed) :
       file_name_(file_name), speed_(initial_speed)
   {
@@ -49,4 +47,4 @@ class MusicThread : public ThreadHelper<MusicThread>
 
 // ===================== Detail Implementation =======================
 
-#endif // MUSIC_PLAYER_THREAD_HPP
+#endif // MUSIC_THREAD_HPP

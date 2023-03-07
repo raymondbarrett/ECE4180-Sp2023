@@ -4,6 +4,8 @@
 ///
 /// \brief The main file.
 
+#include <errno.h>
+
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
@@ -13,13 +15,19 @@
 
 #include <uLCD_4DGL.h>
 
+#include "LCDThread.hpp"
+#include "LEDThread.hpp"
 #include "MusicThread.hpp"
-#include "hardware.hpp"
+#include "TimerThread.hpp"
+
 #include "util.hpp"
+
+// The location under which audio files are hosted.
+#define FILE_DIR "/usb/__LOAN_WAVES__"
 
 // Prefer to keep threads separate, and also statically allocate their frames,
 // so that the compiler can know ahead of time if we use too much memory.
-#define STATIC_THREAD_STACKS 0
+#define STATIC_THREAD_STACKS 1
 
 // Fine-grained control of stack sizes, to get more from the system.
 //
@@ -41,86 +49,6 @@
 
 namespace {
 
-namespace LEDThread {
-
-/// \brief Create lightning effects
-void
-main()
-{
-  do {
-    rtos::Thread::wait(static_cast<int>(3000 * pow(randf(), 3)));
-    RGB = 0xccccdd;
-    rtos::Thread::wait(static_cast<int>(200 * randf()));
-    RGB = 0;
-  } while (true);
-}
-
-} // namespace LEDThread
-
-namespace TimerThread {
-
-/// \brief The timer LCD thread function.
-void
-main()
-{
-  static const std::time_t kSecondStart = std::time(nullptr);
-
-  do {
-    {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      std::time_t            seconds = std::time(nullptr) - kSecondStart;
-      char                   fmt_buf[LCD_MAX_TEXT_WIDTH * 2];
-
-      LCD.filled_rectangle(
-        0, 0, LCD_MAX_WIDTH - 1, LCD_FONT_HEIGHT * 1 + 3, 0xffaaaa);
-      LCD.textbackground_color(0xffaaaa);
-      std::sprintf(
-        fmt_buf,
-        "Time: %02d:%02d:%02d",
-        seconds / 3600,
-        (seconds / 60) % 60,
-        seconds % 60);
-      int len = cutBuffer(fmt_buf, LCD_MAX_TEXT_WIDTH, fmt_buf, 0);
-      LCD.text_string(fmt_buf, LCD_MAX_TEXT_WIDTH - len, 0, FONT_7X8, 0xff0000);
-    }
-    rtos::Thread::wait(1000);
-  } while (true);
-}
-
-} // namespace TimerThread
-
-namespace LCDThread {
-
-/// \brief The LCD lightning effect function.
-void
-main()
-{
-  do {
-    {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      LCD.filled_rectangle(
-        0,
-        LCD_FONT_HEIGHT + 3,
-        LCD_MAX_WIDTH - 1,
-        LCD_MAX_HEIGHT - 1,
-        0xffff00);
-    }
-    rtos::Thread::wait(static_cast<int>(3000 * pow(randf(), 3)));
-    {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      LCD.filled_rectangle(
-        0,
-        LCD_FONT_HEIGHT + 3,
-        LCD_MAX_WIDTH - 1,
-        LCD_MAX_HEIGHT - 1,
-        0x000000);
-    }
-    rtos::Thread::wait(static_cast<int>(200 * randf()));
-  } while (true);
-}
-
-} // namespace LCDThread
-
 /// \brief Die in main.
 void __attribute__((noreturn)) die()
 {
@@ -133,6 +61,20 @@ void __attribute__((noreturn)) die()
     i                  = (i + 1) % (ONBOARD_LED_COUNT * 2 - 2);
     wait_ms(150);
   } while (true);
+}
+
+int
+printdir()
+{
+  DIR* d = opendir(FILE_DIR);
+  if (!d)
+    return 1;
+  printf("[main] Dumping %s: {\r\n", FILE_DIR);
+  for (struct dirent* e = readdir(d); e; e = readdir(d))
+    printf("  %s\r\n", e->d_name);
+  printf("}\r\n");
+  closedir(d);
+  return 0;
 }
 
 #if defined(STATIC_THREAD_STACKS) && STATIC_THREAD_STACKS
@@ -155,10 +97,22 @@ unsigned char TH_TIMER_STACK[TH_TIMER_SSIZE];
 int
 main()
 {
-  printf("\n\r\nStarting program...\r\n");
+  printf("\n\r\n[main] Starting program...\r\n");
 
   rtos::Thread th_timer(TH_TIMER_PRIO, TH_TIMER_SSIZE, TH_TIMER_STACK);
-  th_timer.start(TimerThread::main);
+  TimerThread  timer;
+  timer.startIn(th_timer);
+
+  if (printdir()) {
+    error(
+      "[main] Could not open root file directory %s. [code %d: %s]\r\n",
+      FILE_DIR,
+      -errno,
+      strerror(errno));
+    goto end0;
+  }
+  printf("[main] Select mode.\r\n");
+
   do {
     int mode = 0;
 
@@ -185,29 +139,40 @@ main()
     }
 
     switch (mode) {
-      case 0:
-        break;
+      case 0: {
+        osThreadYield();
+      } break;
 
       case 1: {
         rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
         rtos::Thread th_led(TH_LED_PRIO, TH_LED_SSIZE, TH_LED_STACK);
 
-        MusicThread music_player("/usb/__LOAN_WAVES__/thunder.pcm", 0.8);
+        MusicThread music(FILE_DIR "/thunder.pcm", 0.8);
+        LEDThread   led;
 
-        music_player.startIn(th_music);
-        th_led.start(LEDThread::main);
+        music.startIn(th_music);
+        led.startIn(th_led);
 
         th_music.join();
         th_led.terminate();
       } break;
 
+      case 2: {
+        rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
+
+        MusicThread music(FILE_DIR "/jpn-amend.pcm", 1.0);
+
+        music.startIn(th_music);
+
+        th_music.join();
+      } break;
+
       case 3: {
         rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
 
-        MusicThread music_player(
-          "/usb/__LOAN_WAVES__/all-the-things-she-said.pcm", 1.0);
+        MusicThread music(FILE_DIR "/all-the-things-she-said.pcm", 1.0);
 
-        music_player.startIn(th_music);
+        music.startIn(th_music);
 
         th_music.join();
       } break;
@@ -215,21 +180,21 @@ main()
       case 4: {
         rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
 
-        MusicThread music_player("/usb/__LOAN_WAVES__/tetris-48k.pcm", 12);
+        MusicThread music(FILE_DIR "/tetris.pcm", 1.0);
 
-        music_player.startIn(th_music);
+        music.startIn(th_music);
 
         th_music.join();
       } break;
 
       default:
-        goto end;
+        goto end0;
     }
   } while (true);
 
-end:
   // End program.
+end0:
   th_timer.terminate();
-  printf("Death...\r\n");
+  printf("[main] Death...\r\n");
   die();
 }

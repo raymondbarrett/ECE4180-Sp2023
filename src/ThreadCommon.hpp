@@ -1,14 +1,15 @@
-/// \file ThreadHelper.hpp
+/// \file ThreadCommon.hpp
 /// \date 2023-03-07
 /// \author mshakula (matvey@gatech.edu)
 ///
-/// \brief CRTP helper for thread functions.
+/// \brief CRTP helper for thread functions + inter-thread communication
+/// definition.
 
 #ifndef THREAD_HELPER_HPP
 #define THREAD_HELPER_HPP
 
 #ifndef __cplusplus
-#error "ThreadHelper.hpp is a cxx-only header."
+#error "ThreadCommon.hpp is a cxx-only header."
 #endif // __cplusplus
 
 #include <mbed.h>

@@ -33,7 +33,7 @@
 **************************************************************************************************************
 */
 
-#define PRINT_ENABLE 1
+#define PRINT_ENABLE 0
 
 #if PRINT_ENABLE
 #define PRINT_Log(...) printf(__VA_ARGS__)

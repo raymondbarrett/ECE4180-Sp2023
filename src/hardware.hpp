@@ -23,7 +23,6 @@
 #define PIN_R p24
 #define PIN_G p23
 #define PIN_B p22
-#define PIN_MIC p20
 #define PIN_SPEAK p18
 #define PIN_SW_RIGHT p29 // SWAP THESE FOR DIRECTINOS.
 #define PIN_SW_DOWN p28
@@ -93,6 +92,7 @@ extern mbed::Serial&    BTInput;
 extern mbed::Serial&    PC;
 extern uLCD_4DGL&       LCD;
 extern mbed::AnalogOut& Speaker; // neccessary for dma to work.
+extern mbed::AnalogIn&  Mic;
 extern MSCFileSystem&   USB;
 extern MODDMA&          DMA;
 
