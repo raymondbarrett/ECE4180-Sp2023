@@ -87,6 +87,15 @@ DMA_()
   return dma;
 }
 
+struct Touchpad&
+Touchpad_()
+{
+  static mbed::I2C       i2c(PIN_SDA, PIN_SCL);
+  static struct Touchpad touch(&i2c, Mpr121::ADD_VSS);
+
+  return touch;
+}
+
 rtos::Mutex&
 LCD_Mutex_()
 {
@@ -107,5 +116,6 @@ uLCD_4DGL&       LCD         = LCD_();
 mbed::AnalogOut& Speaker     = Speaker_();
 MSCFileSystem&   USB         = USB_();
 MODDMA&          DMA         = DMA_();
+struct Touchpad& Touchpad    = Touchpad_();
 
 rtos::Mutex& LCD_Mutex = LCD_Mutex_();

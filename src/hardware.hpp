@@ -16,6 +16,7 @@
 
 #include <MODDMA.h>
 #include <MSCFileSystem.h>
+#include <mpr121.h>
 #include <uLCD_4DGL.h>
 
 // ======================= Public Interface ==========================
@@ -24,16 +25,19 @@
 #define PIN_G p23
 #define PIN_B p22
 #define PIN_SPEAK p18
-#define PIN_SW_RIGHT p29 // SWAP THESE FOR DIRECTINOS.
-#define PIN_SW_DOWN p28
-#define PIN_SW_LEFT p27
-#define PIN_SW_CENTER p26
-#define PIN_SW_UP p25
+#define PIN_SW_RIGHT p11 // SWAP THESE FOR DIRECTINOS.
+#define PIN_SW_DOWN p8
+#define PIN_SW_LEFT p7
+#define PIN_SW_CENTER p6
+#define PIN_SW_UP p5
 #define PIN_LCD_RES p30
 #define PIN_LCD_RX p14
 #define PIN_LCD_TX p13
 #define PIN_BLE_RX p10
 #define PIN_BLE_TX p9
+#define PIN_SDA p28
+#define PIN_SCL p27
+#define PIN_TOUCH_IRQ p29
 
 #define ONBOARD_LED_COUNT (4)
 
@@ -85,6 +89,115 @@ struct Switch
   mbed::InterruptIn up, down, left, right, center;
 };
 
+/// \brief Keypad wrapper.
+struct Touchpad
+{
+  static void irq(Touchpad* tp)
+  {
+    int key_code = 0;
+    int i        = 0;
+    int value    = tp->mpr.read(0x00);
+    value += tp->mpr.read(0x01) << 8;
+    // LED demo mod by J. Hamblen
+    // pc.printf("MPR value: %x \r\n", value);
+    i = 0;
+    // puts key number out to LEDs for demo
+    for (i = 0; i < 12; i++) {
+      if (((value >> i) & 0x01) == 1)
+        key_code = i + 1;
+    }
+  }
+
+  Touchpad(mbed::I2C* i2c, Mpr121::Address addr, PinName interrupt_) :
+      mpr(i2c, addr), interrupt(interrupt_)
+  {
+    interrupt.mode(PullUp);
+    interrupt.attach(mbed::callback(irq, this));
+  }
+
+  void test()
+  {
+    printf("\nHello from the mbed & mpr\n\r");
+
+    unsigned char dataArray[2];
+    int           key;
+    int           count = 0;
+
+    printf("Test 1: read a value: \r\n");
+    dataArray[0] = mpr.read(AFE_CFG);
+    printf("Read value=%x\r\n\n", dataArray[0]);
+
+    printf("Test 2: read a value: \r\n");
+    dataArray[0] = mpr.read(0x5d);
+    printf("Read value=%x\r\n\n", dataArray[0]);
+
+    printf("Test 3: write & read a value: \r\n");
+    mpr.read(ELE0_T);
+    mpr.write(ELE0_T, 0x22);
+    dataArray[0] = mpr.read(ELE0_T);
+    printf("Read value=%x\r\n\n", dataArray[0]);
+
+    printf("Test 4: Write many values: \r\n");
+    unsigned char data[] = {0x1, 0x3, 0x5, 0x9, 0x15, 0x25, 0x41};
+    mpr.writeMany(0x42, data, 7);
+
+    // Now read them back ..
+    key   = 0x42;
+    count = 0;
+    while (count < 7) {
+      char result = mpr.read(key);
+      key++;
+      count++;
+      printf("Read value: '%x'=%x\n\r", key, result);
+    }
+
+    printf("Test 5: Read Electrodes:\r\n");
+    key   = ELE0_T;
+    count = 0;
+    while (count < 24) {
+      char result = mpr.read(key);
+      printf("Read key:%x value:%x\n\r", key, result);
+      key++;
+      count++;
+    }
+    printf("--------- \r\n\n");
+
+    // mpr.setProximityMode(true);
+
+    printf("ELE_CFG=%x", mpr.read(ELE_CFG));
+
+    interrupt.fall(&fallInterrupt);
+    interrupt.mode(PullUp);
+  }
+
+  /// \return number of read.
+  int readAll(bool* loc)
+  {
+    mpr.readTouchData();
+    int ct = 0;
+    for (int i = 0; i < 12; ++i) {
+      bool a = read_(i);
+      loc[i] = a;
+      ct += a;
+    }
+    return ct;
+  }
+
+  /// \return if read,
+  /// \param
+  char read(int key)
+  {
+    mpr.readTouchData();
+    return read_(key);
+  }
+
+  Mpr121            mpr;
+  mbed::InterruptIn interrupt;
+
+ private:
+  char read_(int key) { return mpr.read(ELE0_T + 2 * key); }
+};
+
 extern mbed::BusOut&    OnboardLEDs;
 extern struct RGB&      RGB;
 extern struct Switch&   Switch;
@@ -95,6 +208,7 @@ extern mbed::AnalogOut& Speaker; // neccessary for dma to work.
 extern mbed::AnalogIn&  Mic;
 extern MSCFileSystem&   USB;
 extern MODDMA&          DMA;
+extern struct Touchpad& Touchpad;
 
 extern rtos::Mutex& LCD_Mutex;
 

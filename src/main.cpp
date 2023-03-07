@@ -114,7 +114,8 @@ main()
   printf("[main] Select mode.\r\n");
 
   do {
-    int mode = 0;
+    int  mode = 0;
+    bool touch_res[12];
 
     if (BTInput.readable()) {
       if (BTInput.getc() == '!') {
@@ -126,16 +127,32 @@ main()
       }
     }
 
-    if (Switch.get_up()) {
-      mode = 1;
-    } else if (Switch.get_down()) {
-      mode = 2;
-    } else if (Switch.get_left()) {
-      mode = 3;
-    } else if (Switch.get_right()) {
-      mode = 4;
-    } else if (Switch.get_center()) {
-      mode = 5;
+    // if (Switch.get_up()) {
+    // mode = 1;
+    // } else if (Switch.get_down()) {
+    // mode = 2;
+    // } else if (Switch.get_left()) {
+    // mode = 3;
+    // } else if (Switch.get_right()) {
+    // mode = 4;
+    // } else if (Switch.get_center()) {
+    // mode = 5;
+    // }
+
+    Touchpad.test();
+    do {
+    } while (true);
+
+    while (true) {
+      printf("[main] READ @ 0: %d\r\n", (int)Touchpad.read(0));
+    }
+
+    while (!Touchpad.readAll(touch_res)) {
+      osThreadYield();
+    }
+    for (int i = 0; i < 12; ++i) {
+      if (touch_res[i])
+        mode = i;
     }
 
     switch (mode) {
