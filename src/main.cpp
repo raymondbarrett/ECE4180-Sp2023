@@ -146,15 +146,19 @@ main()
       case 1: {
         rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
         rtos::Thread th_led(TH_LED_PRIO, TH_LED_SSIZE, TH_LED_STACK);
+        rtos::Thread th_lcd(TH_LCD_PRIO, TH_LCD_SSIZE, TH_LCD_STACK);
 
         MusicThread music(FILE_DIR "/thunder.pcm", 0.8);
         LEDThread   led;
+        LCDThread   lcd;
 
         music.startIn(th_music);
         led.startIn(th_led);
+        lcd.startIn(th_lcd);
 
         th_music.join();
         th_led.terminate();
+        th_lcd.terminate();
       } break;
 
       case 2: {

@@ -27,28 +27,16 @@ class LCDThread : public ThreadHelper<LCDThread>
  public:
   void operator()()
   {
-    do {
-      {
-        LockGuard<rtos::Mutex> _(LCD_Mutex);
-        LCD.filled_rectangle(
-          0,
-          LCD_FONT_HEIGHT + 3,
-          LCD_MAX_WIDTH - 1,
-          LCD_MAX_HEIGHT - 1,
-          0xffff00);
-      }
-      rtos::Thread::wait(static_cast<int>(3000 * pow(randf(), 3)));
-      {
-        LockGuard<rtos::Mutex> _(LCD_Mutex);
-        LCD.filled_rectangle(
-          0,
-          LCD_FONT_HEIGHT + 3,
-          LCD_MAX_WIDTH - 1,
-          LCD_MAX_HEIGHT - 1,
-          0x000000);
-      }
-      rtos::Thread::wait(static_cast<int>(200 * randf()));
-    } while (true);
+    {
+      LockGuard<rtos::Mutex> _(LCD_Mutex);
+      LCD.background_color(0xffaaaa);
+      LCD.cls();
+      LCD.media_init();
+      LCD.set_sector_address(0x10, 0x00);
+      LCD.display_image(0, 16);
+    }
+    while (true)
+      osThreadYield();
   }
 };
 
