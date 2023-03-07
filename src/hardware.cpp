@@ -87,11 +87,11 @@ DMA_()
   return dma;
 }
 
-rtos::Mutex&
-LCD_Mutex_()
+rtos::Semaphore&
+LCD_Semaphore_()
 {
-  static rtos::Mutex mutex;
-  return mutex;
+  static rtos::Semaphore sem(1);
+  return sem;
 }
 
 } // namespace
@@ -108,4 +108,4 @@ mbed::AnalogOut& Speaker     = Speaker_();
 MSCFileSystem&   USB         = USB_();
 MODDMA&          DMA         = DMA_();
 
-rtos::Mutex& LCD_Mutex = LCD_Mutex_();
+rtos::Semaphore& LCD_Semaphore = LCD_Semaphore_();

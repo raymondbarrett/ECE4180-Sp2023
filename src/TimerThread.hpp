@@ -31,9 +31,9 @@ class TimerThread : public ThreadHelper<TimerThread>
 
     do {
       {
-        LockGuard<rtos::Mutex> _(LCD_Mutex);
-        std::time_t            seconds = std::time(nullptr) - kSecondStart;
-        char                   fmt_buf[LCD_MAX_TEXT_WIDTH * 2];
+        SemGuard<rtos::Semaphore> _(LCD_Semaphore);
+        std::time_t               seconds = std::time(nullptr) - kSecondStart;
+        char                      fmt_buf[LCD_MAX_TEXT_WIDTH * 2];
 
         LCD.filled_rectangle(
           0, 0, LCD_MAX_WIDTH - 1, LCD_FONT_HEIGHT * 1 + 3, 0xffaaaa);

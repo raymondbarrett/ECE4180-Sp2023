@@ -27,6 +27,16 @@ struct LockGuard
   T& _;
 };
 
+template<class T>
+struct SemGuard
+{
+  SemGuard(T& l) : _(l) { _.wait(); }
+
+  ~SemGuard() { _.release(); }
+
+  T& _;
+};
+
 /// \brief Get random number from 0 to 1
 inline float
 randf()

@@ -28,11 +28,11 @@ class LCDThread : public ThreadHelper<LCDThread>
   void operator()()
   {
     {
-      LockGuard<rtos::Mutex> _(LCD_Mutex);
-      LCD.background_color(0xffaaaa);
+      SemGuard<rtos::Semaphore> _(LCD_Semaphore);
+      LCD.background_color(0x000000);
       LCD.cls();
       LCD.media_init();
-      LCD.set_sector_address(0x10, 0x00);
+      LCD.set_sector_address(0x00, 0x00);
       LCD.display_image(0, 16);
     }
     while (true)

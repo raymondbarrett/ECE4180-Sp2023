@@ -20,6 +20,7 @@
 #include "MusicThread.hpp"
 #include "TimerThread.hpp"
 
+#include "hardware.hpp"
 #include "util.hpp"
 
 // The location under which audio files are hosted.
@@ -144,7 +145,6 @@ main()
       } break;
 
       case 1: {
-        rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
         rtos::Thread th_led(TH_LED_PRIO, TH_LED_SSIZE, TH_LED_STACK);
         rtos::Thread th_lcd(TH_LCD_PRIO, TH_LCD_SSIZE, TH_LCD_STACK);
 
@@ -152,13 +152,24 @@ main()
         LEDThread   led;
         LCDThread   lcd;
 
-        music.startIn(th_music);
         led.startIn(th_led);
         lcd.startIn(th_lcd);
 
-        th_music.join();
+        for (int i = 0; i < 3; ++i) {
+          rtos::Thread th_music(TH_MUSIC_PRIO, TH_MUSIC_SSIZE, TH_MUSIC_STACK);
+          music.startIn(th_music);
+          th_music.join();
+          rtos::Thread::wait(5000 * pow(randf(), 5));
+        }
+
         th_led.terminate();
         th_lcd.terminate();
+
+        {
+          SemGuard<rtos::Semaphore> _(LCD_Semaphore);
+          LCD.cls();
+        }
+
       } break;
 
       case 2: {

@@ -96,7 +96,7 @@ extern mbed::AnalogIn&  Mic;
 extern MSCFileSystem&   USB;
 extern MODDMA&          DMA;
 
-extern rtos::Mutex& LCD_Mutex;
+extern rtos::Semaphore& LCD_Semaphore;
 
 // ===================== Detail Implementation =======================
 
